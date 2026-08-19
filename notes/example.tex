@@ -1,0 +1,140 @@
+%%%
+%%% STAT 5014 - Your first LaTeX document
+%%% Compile with:  pdflatex example.tex     (or: latexmk -pdf example.tex)
+%%% Everything before \begin{document} is the "preamble" and sets up your document
+%%%
+\documentclass[11pt]{article}
+
+\usepackage{amsmath}                 % align, cases, \text, \operatorname, ...
+\usepackage{amssymb}                 % \mathbb, \mathcal, extra symbols
+\usepackage{amsthm}                  % theorem and proof environments
+\usepackage[margin=1in]{geometry}    % sensible margins
+
+% Operators: upright and correctly spaced, unlike typing "Var(X)"
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Cov}{Cov}
+\DeclareMathOperator*{\argmin}{arg\,min}   % the * puts limits underneath
+
+% Macros: teach LaTeX your notation
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\iid}{\overset{\text{iid}}{\sim}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}   % takes one argument
+
+% Theorem environments
+\newtheorem{theorem}{Theorem}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+
+\title{A First \LaTeX{} Document}
+\author{Your Name}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Text and inline math}
+
+This is ordinary text.
+A blank line starts a new paragraph; a single line break does not.
+Emphasis is \emph{italic} or \textbf{bold}, and code is \texttt{typewriter}.
+Note that each sentence starts on a new line in the source: LaTeX doesn't care,
+but Git does, and your diffs will thank you.
+
+Quotation marks need ``two backticks and two apostrophes,'' not "straight quotes."
+Special characters must be escaped with a backslash: 50\% of the time you need
+\%, \$, \&, \_, or \#.
+(A bare \% silently comments out the rest of the line, which is a classic first bug.)
+
+Inline math sits between dollar signs: the sample mean is
+$\bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i$, and we often assume $x \in \R$.
+
+\section{Displayed equations}
+
+Use \verb|\[ ... \]| for an unnumbered displayed equation, or the
+\texttt{equation} environment for a numbered one:
+\begin{equation}
+  f(x) = \frac{1}{\sqrt{2\pi}\,\sigma}
+         \exp\!\left( -\frac{(x-\mu)^2}{2\sigma^2} \right).
+\end{equation}
+
+Multi-line derivations line up with \texttt{align}; the \texttt{\&} marks the
+alignment point and \verb|\\| ends a line.
+Note \verb|\Var| and \verb|\E| below (those are our own macros):
+\begin{align}
+  \Var(X) &= \E\!\left[(X-\mu)^2\right] \\
+          &= \E[X^2] - \mu^2 .
+\end{align}
+
+The ordinary least squares estimator solves a minimization problem:
+\[
+  \hat{\beta} = \argmin_{\beta \in \R^p} \norm{y - X\beta}^2
+              = (X^\top X)^{-1} X^\top y .
+\]
+
+\section{Statistical notation}
+
+\begin{itemize}
+  \item Distributed as: $X \sim \mathcal{N}(\mu, \sigma^2)$.
+  \item Independent and identically distributed: $X_1, \ldots, X_n \iid F$.
+  \item Convergence: $\bar{X}_n \xrightarrow{p} \mu$ and
+        $\sqrt{n}(\bar{X}_n - \mu) \xrightarrow{d} \mathcal{N}(0, \sigma^2)$.
+  \item Independence: $X \perp\!\!\!\perp Y$.
+  \item Conditional densities use \verb|\mid|, not a bare bar: $f(y \mid x)$.
+  \item Binomial coefficients: $\binom{n}{k}$.
+\end{itemize}
+
+\section{Matrices and piecewise functions}
+
+\texttt{pmatrix} gives parentheses (\texttt{bmatrix} gives square brackets):
+\[
+  \Sigma = \begin{pmatrix}
+             \sigma_1^2            & \rho\,\sigma_1\sigma_2 \\
+             \rho\,\sigma_1\sigma_2 & \sigma_2^2
+           \end{pmatrix}.
+\]
+
+\texttt{cases} handles piecewise definitions:
+\[
+  \mathbf{1}\{x > 0\} =
+  \begin{cases}
+    1 & \text{if } x > 0, \\
+    0 & \text{otherwise.}
+  \end{cases}
+\]
+
+\section{Theorems and proofs}
+
+\begin{definition}
+  An estimator $\hat{\theta}$ is \emph{unbiased} for $\theta$ if
+  $\E[\hat{\theta}] = \theta$ for all $\theta$.
+\end{definition}
+
+\begin{theorem}[Central Limit Theorem]
+  Let $X_1, \ldots, X_n \iid F$ with mean $\mu$ and finite variance $\sigma^2$.
+  Then $\sqrt{n}(\bar{X}_n - \mu) \xrightarrow{d} \mathcal{N}(0, \sigma^2)$.
+\end{theorem}
+
+\begin{proof}
+  Beyond the scope of this example... which is a phrase you should get comfortable
+  writing.
+\end{proof}
+
+\section{Lists}
+
+Bulleted with \texttt{itemize}:
+\begin{itemize}
+  \item first point
+  \item second point
+\end{itemize}
+
+Numbered with \texttt{enumerate}:
+\begin{enumerate}
+  \item Show that the estimator is unbiased.
+  \item Derive its variance.
+    \begin{enumerate}
+      \item Start from the definition.
+    \end{enumerate}
+\end{enumerate}
+
+\end{document}
