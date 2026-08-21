@@ -38,6 +38,8 @@ GitHub page:
 
 Course announcements and grades will be posted through Canvas.
 
+If you find any course materials inaccessible, please let me know so I can improve them for you!
+
 **Textbook:** There is no required text for this course, but the
 following texts are useful resources.
 
