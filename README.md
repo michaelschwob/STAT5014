@@ -125,6 +125,8 @@ specific approval.**
 
 The use of generative AI **is** permitted in this course, but you must be able to explain everything you submit. Use AI to learn, not to replace you.
 
+To receive a "pass" on homework assignments, students must successfully complete the homework **and** pass the respective homework check-up, which is a mini-quiz associated with each homework where students are expected to explain their submission without computer aid.
+
 ## Standard VT Policies
 
 Virginia Tech welcomes students with disabilities into the University’s
