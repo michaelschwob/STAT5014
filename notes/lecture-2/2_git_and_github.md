@@ -238,31 +238,7 @@ Both work.)
 Use a branch whenever you're trying something that might not pan out, which in research is
 quite frequent. If your idea fails, delete the branch and `main` will never know. And hopefully, your advisor doesn't either.
 
-## Merge Conflicts
-
-A conflict happens when two changes touch the same lines and Git can't decide which to keep.
-Git is not angry with you; it is just refusing to make a judgment call that it isn't qualified to make. If only AI was as principled...
-
-When conflicts happen, Git edits the file to show you both versions:
-
-```
-<<<<<<< HEAD
-sigma <- sd(x)
-=======
-sigma <- sqrt(var(x))
->>>>>>> try-new-prior
-```
-
-Everything between `<<<<<<< HEAD` and `=======` is in the current version, and everything between
-`=======` and `>>>>>>>` is in the incoming version. To resolve it:
-
-1. Open the file and decide what the correct final text is. You may keep either side, both,
-   or something new.
-2. Delete all three marker lines.
-3. `git add FILE` and then `git commit`.
-
-The best defense to conflicts: pull before you work, keep commits small, and
-don't edit the same file at the same time as somebody else. For a fun, free, visual approach to learning branching, see
+For a fun, free, visual approach to learning branching, see
 [Learn Git Branching](https://learngitbranching.js.org/).
 
 ## Collaborating on GitHub
@@ -290,6 +266,36 @@ git stash        # put changes aside
 git stash pop    # bring them back
 git stash list   # see what's on the shelf
 ```
+
+Stashes are also a fantastic way for you to resolve conflicts...
+
+## Merge Conflicts
+
+A conflict happens when two changes touch the same lines and Git can't decide which to keep.
+Git is not angry with you; it is just refusing to make a judgment call that it isn't qualified to make. If only AI was as principled...
+
+A safe way to resolve conflicts is to stash your changes locally, pull updated files from the remote repository, and `pop` the stash to resolve conflicts directly.
+
+When conflicts happen, Git edits the file to show you both versions:
+
+```
+<<<<<<< HEAD
+sigma <- sd(x)
+=======
+sigma <- sqrt(var(x))
+>>>>>>> try-new-prior
+```
+
+Everything between `<<<<<<< HEAD` and `=======` is in the current version, and everything between
+`=======` and `>>>>>>>` is in the incoming version. To resolve it:
+
+1. Open the file and decide what the correct final text is. You may keep either side, both,
+   or something new.
+2. Delete all three marker lines.
+3. `git add FILE` and then `git commit`.
+
+The best defense to conflicts: pull before you work, keep commits small, and
+don't edit the same file at the same time as somebody else.
 
 ## Using AI Well with Git
 
