@@ -97,8 +97,8 @@ based on class progress and priorities.
 | 2 | September 2 | Git and GitHub | (ungraded) Homework 0 due |
 | 3 | September 9 | Git and GitHub + LaTeX Documents and Math |  |
 | 4 | September 16 | LaTeX Documents and Math + LaTeX Figures, Tables, and Citations |  |
-| 5 | September 23 | R Foundations and Quarto | |
-| 6 | September 30 | R Control Flow, Vectorization, and Functions | Homework 1 due |
+| 5 | September 23 | R Foundations and Quarto | Homework 1 due |
+| 6 | September 30 | R Control Flow, Vectorization, and Functions | |
 | 6 | October 7 | R Control Flow, Vectorization, and Functions (continued) | Homework 2 due |
 | 7 | October 14 | Good Coding, Debugging, and Getting Unstuck |  |
 | 8 | October 21 | Data Visualization | Homework 3 due |
