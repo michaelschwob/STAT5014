@@ -1,0 +1,73 @@
+---
+title: "A First Quarto Document"
+author: "Your Name"
+date: today
+format: html
+---
+
+## What This Is
+
+This document mixes three things in one file: **prose** (this paragraph), **math** written
+in LaTeX, and **code** that actually runs when the document is rendered. Nothing below was
+copied and pasted from a separate R session; the numbers and the figure are produced by the
+code chunks you can see.
+
+We will simulate data from the simple linear model
+$$
+  y_i = \beta_0 + \beta_1 x_i + \varepsilon_i,
+  \qquad \varepsilon_i \sim \mathcal{N}(0, \sigma^2),
+$$
+fit it by ordinary least squares, and report the result.
+
+## Simulate and Fit
+
+The `set.seed()` call makes this reproducible. Everyone who renders this document gets the
+same "random" data, which is the whole point.
+
+```{r}
+#| label: simulate
+#| message: false
+set.seed(5014)
+
+n <- 60
+x <- runif(n, 0, 10)
+y <- 2 + 0.5 * x + rnorm(n, sd = 1)
+
+fit <- lm(y ~ x)
+coef(fit)
+```
+
+The estimated intercept is `r round(coef(fit)[1], 2)` and the estimated slope is
+`r round(coef(fit)[2], 2)`, against true values of 2 and 0.5. Those two numbers in the
+previous sentence are inline code, not typed by hand. Change the seed or the sample size and
+they update themselves when the document is re-rendered.
+
+## A Figure
+
+The chunk below is set to `echo: false`, so the plotting code is hidden and only the figure
+appears. It also comes with a caption.
+
+```{r}
+#| label: fig-scatter
+#| fig-cap: "Simulated data with the ordinary least-squares fit overlaid."
+#| fig-width: 6
+#| fig-height: 3.8
+#| echo: false
+plot(x, y,
+     pch = 19, col = "steelblue",
+     xlab = "x", ylab = "y")
+abline(fit, lwd = 2)
+```
+
+## A Small Table
+
+`summary()` on the fitted model gives the usual coefficient table:
+
+```{r}
+#| label: coef-table
+summary(fit)$coefficients
+```
+
+If the data changed tomorrow, you would not touch a single number in the prose or redraw the
+figure by hand. You would render the document again, and everything above would update at
+once. That is reproducible reporting and is why your homework will now be in `.qmd` files.
