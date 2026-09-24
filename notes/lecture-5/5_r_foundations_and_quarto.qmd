@@ -1,0 +1,275 @@
+---
+title: "STAT 5014 — Lecture 5: R Foundations & Quarto"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    embed-resources: true
+---
+
+Welcome to R, where the assignment arrow points left and the indexing starts at one. Today, we'll cover the foundations of R and Quarto, where we can run code alongside Markdown and LaTeX formatting.
+
+## Why R?
+
+R was written by statisticians for statistics, so the things you'll want to do (e.g., fit a model, resample, plot a distribution) are usually more accessible than in other programming languages.
+It's interactive, it has a package for essentially every method ever published, and it's free.
+Python and Julia come later, and all three belong in your toolkit for different reasons, but R is where statisticians typically feel at home.
+
+## RStudio
+
+If R is the engine, **RStudio** is the cockpit. You'll see that there are four panes: the **console**
+(bottom-left) where R runs, the **source editor** (top-left) where you write scripts and Quarto documents, the **environment** (top-right) listing your objects, and
+**files/plots/help** (bottom-right).
+
+For help, `?mean` opens a function's page and `??"linear model"` searches the local environment for relevant help pages. The Examples at the bottom of documentation pages are (or at least, *should be*) runnable; I steal from them constantly.
+
+### Projects
+
+An RStudio **Project** (a `.Rproj` file) ties a folder to a working directory, so every relative path works automatically on your machine and your collaborator's. Without one you end up writing
+`setwd("C:/Users/michaelschwob/...")`, which breaks the instant anyone else opens it... including future you on a new laptop.
+
+Try to have one project per assignment/paper updated in a Git repo with relative paths (or `here::here("data", "file.csv")`, which finds the project root for you).
+
+## R as a Calculator
+
+At its most basic form, R can be taken as a calculator:
+
+```r
+2 + 2 # 4
+7 %% 3 # 1   (modulo)
+2^10 # 1024
+x <- 5 # assignment; use <- , not =
+```
+
+Try to use `<-` for assignment, though R accepts `=`. A hot topic in the statistics community, but `<-`
+is the convention and keeps assignment visually distinct from function arguments, where `=` means equality in equations. Note that `#` starts a comment.
+
+```{r}
+#| label: setup
+#| include: false
+## Defines the example data used by the live inline code later in these notes.
+plots <- data.frame(site    = c("ridge", "ridge", "valley"),
+                    canopy  = c(41.2, 63.4, 55.6),
+                    biomass = c(28.1, 39.7, 44.0))
+```
+
+## Vectors: The Actual Building Block
+
+A common confusion for people migrating from other languages is that R has no scalars. The number `5` is a vector
+of length one. Everything is a vector, and vectors come in four types:
+
+| Type | Example | Notes |
+|:--|:--|:--|
+| logical | `TRUE`, `FALSE` | also `T`/`F`, but spell them out |
+| integer | `4L` | the `L` is not a typo; it forces integer |
+| double | `4.2`, `3` | the default "numeric" type |
+| character | `"stats"` | strings, in single or double quotes |
+
+You can construct vectors with `c()` and interrogate them with `typeof()` and `length()`. Some useful vector constructors are
+`seq(0, 1, by = 0.25)`, `seq_len(5)`, `rep(c(0, 1), times = 3)`.
+
+### Coercion
+
+A vector can only hold one type. If you mix types, R silently coerces to the most permissive one in the order
+logical → integer → double → character.
+
+```r
+c(TRUE, 5L, 2.5) # 1.0 5.0 2.5 (all doubles)
+c(1, 2, "three") # "1" "2" "three" (all characters!)
+```
+
+That second line is a classic disaster. One stray string in a column of numbers turns the whole
+thing into text. You can use `as.numeric()` to convert numbers back to its correct type.
+
+### Special Values
+
+`NA` is missing data, and it's contagious: `mean(c(1, 2, NA))` is `NA`. Use
+`mean(x, na.rm = TRUE)` to ignore it and `is.na(x)` to find it. 
+
+`NULL` is the absence of a value entirely, and `NaN` (`0/0`) and `Inf` (`1/0`) round out the cast of misfits.
+
+## Vectorization and Indexing
+
+R natively applies operations to whole vectors at once without the need for loops:
+
+```r
+x <- 1:5
+x^2 # 1 4 9 16 25
+```
+
+Note that `x^2` is both shorter and faster than looping through all vector elements.
+
+Subset vectors with `[ ]`. R is 1-indexed, so `x[1]` is the first element, which will feel wrong for about two weeks if you're coming from Python or C++. But who's really the weirdo?
+
+```r
+x <- c(10, 20, 30, 40, 50)
+x[1] # 10          (first, not "second"!)
+x[c(2, 4)] # 20 40       (multiple positions)
+x[-1] # 20 30 40 50 (negative = exclude)
+x[x > 25] # 30 40 50    (logical subsetting: the workhorse)
+```
+
+Logical subsetting is how you'll filter data all semester. When you need the *positions* where a
+condition holds rather than the values, `which(x > 25)` gives you those. For you R power users, the `tidyverse` universe can provide more efficient data filtering functionality.
+
+## Data Structures Beyond the Vector
+
+### Matrices
+
+A **matrix** is a 2D vector with one type throughout:
+
+```r
+m <- matrix(1:6, nrow = 2) # fills by column by default
+m %*% t(m) # matrix multiplication (%*%, not *)
+m[1, ] # first row
+m[, 2] # second column
+```
+
+`%*%` is matrix multiplication, whereas `*` multiplies element-wise; confusing them is a common source of migraines. Also, `m[1, ]` returns a plain vector (not a 1-row matrix) because R "drops" the dimension.
+
+### Lists
+
+A **list** holds anything of any type and of any length. It's what most modeling functions hand back to you because it's an apathetic structure that can easily be taken advantage of.
+
+```r
+result <- list(name = "model 1", coefs = c(2.1, 0.5), converged = TRUE)
+```
+
+The single most confusing part of R (imo):
+
+1. `[ ]` returns a sub-list, so `result["coefs"]` is a *list* containing the coefficients.
+2. `[[ ]]` returns the element itself, so `result[["coefs"]]` is the actual numeric vector.
+3. `$` is shorthand for `[[` by name, so `result$coefs` is the same as `result[["coefs"]]`.
+
+### Data Frames
+
+A **data frame** is the rectangular table you'll use quite often. Under the hood, it's a list of equal-length vectors (one per column), so each column is a single type but columns can differ.
+
+```r
+plots <- data.frame(site = c("ridge", "ridge", "valley"),
+                    canopy = c(41.2, 63.4, 55.6),
+                    biomass = c(28.1, 39.7, 44.0))
+```
+
+Note the name: R already has a function called `df` (the F distribution density), so try to name your data frames something more **fun**.
+
+Here are several common ways to investigate your data frames:
+
+```r
+str(plots) # prints types and a peek at each column
+head(plots) # first six rows
+summary(plots) # per-column summaries
+```
+
+Data frame indexing combines the vector and list rules:
+
+```r
+plots$canopy # a column, as a vector
+plots[["canopy"]] # same thing
+plots[plots$site == "ridge", ] # rows where site is "ridge"
+```
+
+That comma in the last example matters a lot: `plots[rows, columns]`. Forget the comma, and R subsets the underlying list of columns instead, which may give a different and confusing result.
+
+R can also store categorical variables as **factors** with a fixed set of levels. They're essential for modeling because a factor tells `lm()` "this is a category, not a number." Side quest: the tidyverse's **tibble** is a modern data frame that prints better and generates fewer surprises.
+
+## Reading and Writing Data
+
+```r
+plots <- read.csv("data/plot_survey.csv")
+write.csv(plots, "results/summary.csv", row.names = FALSE)
+```
+
+Note that `row.names = FALSE` is necessary so R doesn't add an unnecessary column of row indices. Base R works, but `readr::read_csv()` is faster, guesses column types more sensibly, and complains loudly instead of silently.
+
+Always use relative paths. A script full of `C:/Users/you/Desktop/...` runs on exactly one computer on Earth.
+
+R also has two native data formats that could make your collaboration much more efficient: 
+
+1. `saveRDS()`/`readRDS()` handle a single object and is explicit and safe. 
+2. `.RData` saves several objects at once and `load()` dumps
+them back under their old names.
+
+## Reproducible Setup
+
+There are two aspects of R programming that we should discuss in the name of scientific reproducibility:
+
+1. The first is your workspace. By default, R offers to save it to `.RData` on exit and reload it next time, which feels helpful but is a trap. Your analysis will start depending on objects that aren't in any script, and one day it won't rebuild. In RStudio, Tools → Global Options, first uncheck "Restore .RData," then set "Save workspace" to Never. Your script should recreate everything from source, every time. This replicates what your peers will need to do when running your code.
+2. The second is your packages. `renv` keeps a per-project lockfile of exact versions: `renv::init()` to start, `renv::snapshot()` to record, `renv::restore()` to rebuild elsewhere. Commit `renv.lock`. You should practice the same idea in Python (`conda env export`) and Julia
+(`Manifest.toml`). Skip it for homework but use it for a paper you want to reproduce in two years.
+
+## Quarto
+
+At this point, you might be thinking: "Wow, Michael. Such beautiful notes you make for us. I come for the prospect of donuts, but I stay for the notes." Well, thank you for noticing. I make them in **Quarto**!
+
+Quarto weaves narrative, math, and *runnable* code into one document that
+you can render to HTML, PDF, or Word. It's exactly the Markdown+LaTeX idea from the last few weeks plus you can now insert code! It's the
+successor to R Markdown, speaks R, Python, and Julia, and its files end in `.qmd`. From here on, your homework will be submitted as Quarto documents. So, buckle up!
+
+There are three main ingredients to a Quarto document: a YAML header between `---` fences, Markdown prose, and code chunks:
+
+````{verbatim}
+---
+title: "Homework 2"
+author: "Your Name"
+format: html
+---
+
+## A section, written in Markdown
+
+Prose goes here, and the LaTeX still works: $\bar{x} = \frac{1}{n}\sum_{i=1}^n x_i$.
+
+<!-- This is a comment in Quarto and below is how you invoke an R environment. -->
+```{r}
+#| label: fit-model
+#| warning: false
+x <- rnorm(100)
+mean(x)
+```
+````
+
+### Chunk Options for Programming
+
+Options go at the top of a chunk on `#|` lines:
+
+| Option | Effect |
+|:--|:--|
+| `echo: false` | run the code but hide it; show only the output |
+| `eval: false` | show the code but don't run it |
+| `warning: false` | suppress warnings in the rendered document |
+| `message: false` | suppress messages (e.g. package startup chatter) |
+| `label: fig-thing` | name the chunk, which also enables cross-references! |
+| `fig-cap: "..."` | caption a figure |
+
+### Inline Code
+
+Drop a computed value straight into a sentence with `r knitr::inline_expr('<insert code>')` surrounded by backticks "`":
+
+```{verbatim}
+The survey has `r nrow(plots)` plots, with mean canopy cover `r round(mean(plots$canopy), 1)`%.
+```
+
+That line, rendered, produces this sentence: the survey has `r nrow(plots)` plots, with mean
+canopy cover `r round(mean(plots$canopy), 1)`%. Believe it or not (but do), those numbers were computed while this document was being built, not typed by me. 
+
+It's the same concept as `\ref` in LaTeX, now aimed at *values*: never paste a number that a computation can produce. If you change the data and re-render, every number and figure updates at once. There are no stale numbers and no copy-paste errors at 9:04am on a Wednesday morning.
+
+### Rendering
+
+Click **Render** in RStudio, or run `quarto render homework.qmd` in the console. HTML is the default and the friendliest. PDF goes through LaTeX, which is exactly why you installed TinyTeX in Homework 0 (*right*?).
+Quarto also does cross-references (`@fig-thing`), so you can reference a figure by label just like in a paper.
+
+Everything above appears in `first_document.qmd,` posted alongside these notes. Note that the figures land in a companion `_files` folder by default, which is normal and not a sign that anything broke.
+
+## Hitting an Error?
+
+- Try investigating a function with `?function`. Examples are runnable and *should be* helpful.
+- Packages ship vignettes, which are long-form tutorials: `browseVignettes("packagename")`.
+- When you ask for help, make a **reprex**: the smallest self-contained snippet that reproduces the problem. The `reprex` package formats one, and building it solves the bug about half the time. Cross Validated users will thank you.
+- Label code chunks so that the Quarto debugger can better point you to potential problems.
+- AI assistants write passable R but invent function arguments and package names with confidence. Check anything unfamiliar against `?fun`. Wrong statistical code runs perfectly and returns a confident, plausible, wrong number. "It ran" is not "it's correct."
+
+## Before Next Week
+
+- Install the tidyverse if you haven't already: `install.packages("tidyverse")`.
+- Next week: control flow, vectorization, functions, and your first simulation.
