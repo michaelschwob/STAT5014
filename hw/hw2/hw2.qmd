@@ -1,0 +1,86 @@
+---
+title: "Homework 2 — R Foundations and Quarto"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    embed-resources: true
+---
+
+**Due:** Wednesday, October 14 by 9:05 am.
+
+This is your first Quarto submission, and every homework from here on will also be one. The dataset is a plot survey with the kind of problems that real field data actually have, which is to say it will not cooperate until you make it!
+
+Note that `read.csv()` will not warn you about any of it, by design. It hands back a data frame that looks perfectly fine and then produces a wrong answer four lines later. Your job is to fix it and complete a *flawless* submission!
+
+---
+
+## Submission Instructions
+
+In your class repository, create a folder titled `hw2` containing `hw2.qmd` and the data file `plot_survey.csv` (download it from the class repository). Don't push the rendered `hw2.html` or its `_files/` folder; your `.gitignore` should be handling that by now.
+
+To grade this, I will clone your repository, `cd` into `hw2`, and run:
+
+```
+quarto render hw2.qmd
+```
+
+Your document has to render on my machine from a fresh clone. The most common way to fail that is to create an object in your console and then forget it isn't in the document. Test with Session → Restart R, then Render *before* you push.
+
+Finally, set `format: html` and put your name in the YAML header.
+
+---
+
+## Part 1: Read and Inspect
+
+Read `plot_survey.csv` with a relative path, then inspect it with `str()` before doing anything else.
+
+In a sentence or two, describe how many rows and columns there are using inline code rather than typing the numbers by hand. Then, answer this: which column is not the type you'd expect, and why? Look closely. One of them is a peculiar type.
+
+---
+
+## Part 2: Clean It
+
+There are three distinct problems that I've deviously planted in this file. Find and fix all three.
+
+For each one, show the code and write a sentence explaining what you did and why. Report how many rows you dropped or converted using inline code for the count.
+
+---
+
+## Part 3: Summarize
+
+Using base R, do the following:
+
+1. Report the mean and standard deviation of `biomass` and of `canopy` after cleaning.
+2. Report the number of plots at each `site` and in each `treatment`.
+3. Compute the mean `biomass` separately for each `site`. Logical subsetting or `tapply()` both work.
+4. Report how many plots have a missing `soil_ph`.
+
+Remember, every number that appears in your prose must come from inline code. If I find a hard-coded number in a sentence, I will rage.
+
+---
+
+## Part 4: Answer a Question
+
+Using logical subsetting, answer this: among thinned plots only, is mean biomass higher on riparian sites than on ridge sites? If so, by how much?
+
+Show your code, report the difference with inline code, and state the answer in a sentence. Note that no statistical test is required; this is a data-handling exercise, not an inference one.
+
+---
+
+## Part 5: Make One Figure
+
+Produce a single figure showing `biomass` against `canopy`. Base `R` graphics are fine because we don't do `ggplot2` for a few more weeks.
+
+Label both axes with units, give the chunk a `fig-cap`, set a sensible `fig-width` and `fig-height`, and write one sentence underneath saying what the figure shows.
+
+---
+
+## How This Is Graded
+
+To pass:
+
+1. `quarto render hw2.qmd` succeeds from a fresh clone.
+2. All three data problems in Part 2 are found and handled with an explanation for each.
+3. Every number in your prose comes from inline code.
+4. The figure is labeled with units and captioned.
