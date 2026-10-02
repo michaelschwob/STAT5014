@@ -1,0 +1,198 @@
+---
+title: "STAT 5014 — Lecture 6: R Control Flow, Vectorization, & Functions"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    embed-resources: true
+---
+
+## Logical Tests
+
+Before we get to `R`'s conditional statements and loops, let's look at how Boolean logic is encoded:
+
+| You want | You write |
+|:--|:--|
+| equal / not equal | `==`, `!=` |
+| ordering | `<`, `<=`, `>`, `>=` |
+| and / or / not | `&`, `&&`, `|`, `||`, `!` |
+| membership | `x %in% c(1, 2, 3)` |
+| any / all | `any(x > 0)`, `all(x > 0)` |
+| is it missing? | `is.na(x)` |
+
+A couple things to note. First, `=` assigns while `==` compares... tricky tricky. Second, `&` and `|` are *vectorized* and return a vector, while `&&` and `||` are *scalar* and return a single value. Use `&` and `|` when filtering data, and `&&` and `||` inside an `if`, `for`, or `while` loop. Speaking of...
+
+## if, else, and ifelse
+
+Here is the `R` syntax for an `if`/`else` statement:
+
+```r
+if(p < 0.05){
+  "reject"
+}else{
+  "fail to reject"
+}
+```
+
+Note that `if` accepts only one `TRUE` or `FALSE`. If you give it a vector, you'll get an error, which is where `ifelse()` comes in. It checks a condition element-wise and returns a vector of the same length:
+
+```r
+x <- c(3, -1, 4, -5)
+ifelse(x > 0, "pos", "neg") # "pos" "neg" "pos" "neg"
+```
+
+So, `if` decides about one thing and `ifelse()` decides about every element. 
+
+## Loops
+
+Natively, `R` has three loops: `for` (a known number of iterations), `while` (until something becomes false), and `repeat` (forever, until you `break` out). Use `break` to exit early and `next` to skip an iteration; both are more readable than "flags."
+
+I recommend two rules to save you some headache. First, iterate with `seq_along(x)` or `seq_len(n)` rather than `1:n`. When `n` is zero, `1:0` counts *backwards* as `1, 0`, so your loop runs twice on an empty object and produces double the nonsense. Why would anyone want that behavior? Because they're psychos. In contrast, `seq_len(0)` correctly gives you nothing.
+
+Second, preallocate your output. Growing an object inside a loop makes R copy the whole thing on every iteration:
+
+```r
+out <- numeric(n) # allocate once
+for(i in seq_len(n)) out[i] <- i^2 # fill in place
+```
+
+Woah, wait a second... You can write a `for` loop like that on one line? Yeah, you can. Just did it.
+
+You'll hear that loops in R are slow. More accurately, they're slower than the vectorized alternative. For example, summing $10^5$ values takes roughly 6 milliseconds in a loop and 1 millisecond with `sum()`. Of course, the gap grows with $n$. A general rule of thumb: use a loop when each iteration depends on the last (e.g., an MCMC chain, a recursion), and vectorize when it doesn't.
+
+## The `apply` Family
+
+This family *applies* a function `f` over a structure and collects the results; this is what a loop does minus the bookkeeping.
+
+| Function | Over what | Returns |
+|:--|:--|:--|
+| `apply(m, 1, f)` | rows of a matrix (`2` for columns) | vector or matrix |
+| `lapply(x, f)` | elements of a vector or list | a list |
+| `sapply(x, f)` | elements of a vector or list | vector if it can, list if not |
+| `vapply(x, f, numeric(1))` | elements of a vector or list | a declared return type |
+
+```r
+apply(matrix, 1, mean) # 3 4 (row means)
+sapply(1:5, function(z) z^2) # 1 4 9 16 25
+vapply(1:3, function(z) z * 2, numeric(1)) # 2 4 6
+```
+
+`sapply()`guesses what to return, so it hands back a vector most days and a list on the day your function returns something unexpected. `vapply()` makes you declare the return type up front and errors immediately if reality disagrees. For the `tidyverse` crowd, `purrr::map()` is the same idea with more consistent naming.
+
+## Five Ways to Do One Thing
+
+Let's compute the mean of every row of a 20,000 $\times$ 200 matrix, five different ways, and time them.
+
+```r
+set.seed(5014)
+M <- matrix(rnorm(20000 * 200), nrow = 20000)
+
+f_grow <- function(M){ out <- c(); for(i in 1:nrow(M)) out <- c(out, mean(M[i, ])); out}
+f_prealloc <- function(M){ out <- numeric(nrow(M)); for(i in seq_len(nrow(M))) out[i] <- mean(M[i, ]); out }
+f_sapply <- function(M) sapply(seq_len(nrow(M)), function(i) mean(M[i, ]))
+f_apply <- function(M) apply(M, 1, mean)
+f_rowmeans <- function(M) rowMeans(M)
+```
+
+All five return exactly the same vector. However, they do not take the same amount of time:
+
+| Approach | Time | Relative |
+|:--|--:|--:|
+| growing loop | 0.50 sec | 38x |
+| preallocated loop | 0.12 sec | 9x |
+| `sapply()` | 0.12 sec | 9x |
+| `apply()` | 0.11 sec | 8x |
+| `rowMeans()` | 0.013 sec | 1x |
+
+Growing the output is roughly four times worse than preallocating, and that penalty grows with the number of rows (every append copies the whole vector again).
+
+Note that `apply()` and `sapply()` are not faster than the preallocated loop. They sit in the same tier because the `apply` family is not vectorization! It's a loop wearing better clothes. Yes, the syntax is cleaner and the bookkeeping disappears, but don't expect a speed-up.
+
+So, what makes this newcomer `rowMeans()` at least eight times quicker than all of the others? It never returns to R between rows. The whole loop happens in compiled C! That's the real lesson: speed in R comes from *staying out of R*, which is why `rowMeans`, `colSums`, `crossprod`, and friends exist. 
+
+If you plan to do some pretty significant computing, I highly recommend you look into [`Rcpp`](https://www.rcpp.org/), which provides a seamless integration of `R` and `C++`. With it, you can interface with the existing `R` ecosystem at `C++` speeds. The one caveat: there is a bit of an interpretation cost, but it's minimal compared to most stochastic algorithms.
+
+### Timing Things Yourself
+
+Most people use `system.time()` to time any `R` code that takes more than a few hundred milliseconds:
+
+```r
+system.time(rowMeans(M)) # elapsed is the one you want
+```
+
+For shorter operations, a single run is mostly noise, so you'll want to repeat and take a median. The `bench` and `microbenchmark` packages do this properly.
+
+A caveat before anyone goes optimizing: 0.5 seconds against 0.013 seconds is a rounding error if you run it once.
+
+## Writing Functions
+
+Write a function as soon as a code block has been copy-pasted twice. If editing one copy means remembering to edit the other, then it sounds like you need a function. Let's take a look at the `R` function syntax:
+
+```r
+standardize <- function(x, na.rm = TRUE){
+  if(!is.numeric(x)) stop("`x` must be numeric.")
+  (x - mean(x, na.rm = na.rm)) / sd(x, na.rm = na.rm)
+}
+
+standardize(c(1, 2, 3, 4, 5)) # -1.265 -0.632 0.000 0.632 1.265
+```
+
+Three things to pay attention to here:
+
+1. Arguments can have defaults (e.g., `na.rm = TRUE`).
+2. The return value is the last expression evaluated. An explicit `return()` call can also be used.
+3. Errors come from `stop()` and warnings from `warning()`. Check arguments early.
+
+A function gets its own environment, so assignments inside it are local:
+
+```r
+y <- 10
+g <- function(){ y <- 99; y }
+g() # 99
+y # 10, untouched
+```
+
+Note that R will *read* variables from the enclosing environment if it can't find them locally, which is convenient but dangerous. Pass what you need as arguments.
+
+At minimum, document what goes in and what comes out in a comment header above the function (future you will be grateful). The [`roxygen2`](https://roxygen2.r-lib.org/) convention formalizes this with `#'` comments and is what many R packages use; you'll want to use it when you develop `R` packages yourself.
+
+## Your First Simulation
+
+A simulation study has the same skeleton every time: set a seed, generate data under a known truth, apply a method, repeat many times, and summarize how the method did. If it did well, throw it in your paper/presentation. If it doesn't, tweak and repeat. (*This is a joke... kinda.*)
+
+Setting a seed matters more than people realize. R's random numbers are deterministic given a starting state, so `set.seed()` means you and I get the same "random" data and the same answer. Without it, your results change every run and nobody (including you) can reproduce the numbers in your paper. Set it once at the top of your script, but never inside a loop (a seed inside the loop makes every replicate identical, which is certainly *a* way to get a standard error of exactly zero).
+
+Before we get to a simulation example, let's review distributions. Statistical distributions follow a naming convention: `r` for random draws, `d` for density, `p` for the CDF, and `q` for quantiles. So, for the normal distribution, we get `rnorm`, `dnorm`, `pnorm`, `qnorm`, and likewise for `unif`, `binom`, `pois`, and friends. Side note: `sample()` draws from a vector with or without replacement.
+
+Now, let's take a look at a nonparametric bootstrap, which requires a loop, a function, and a seed:
+
+```r
+set.seed(5014)
+
+boot_mean <- function(x, B = 1000){
+  n <- length(x)
+  replicate(B, mean(sample(x, n, replace = TRUE)))
+}
+
+d <- rnorm(50, mean = 3) # how do you know what arguments this takes?
+bm <- boot_mean(d)
+
+sd(bm) # bootstrap SE: 0.1308
+sd(d)/sqrt(50) # analytic SE: 0.1378
+quantile(bm, c(0.025, 0.975)) # 2.647 3.145
+```
+
+A few new entries in your `R` toolbelt. First, `replicate()` is a thin wrapper around `sapply()` that runs an expression `B` times and collects the results, which is what a Monte Carlo study needs. Second, look at those two standard errors! The bootstrap lands right on the analytic answer, which is the whole point; you just estimated the sampling distribution of a statistic without doing a line of algebra.
+
+## Hitting an Error?
+
+- "the condition has length > 1" means you gave `if` a vector when you wanted `ifelse()`.
+- "argument of length 0" usually means an empty object, often from `1:n` with `n` zero.
+- "object 'x' not found" inside a function usually means you relied on a global that isn't there anymore. Pass it as an argument.
+- If a loop is slow, check whether you're growing an object (see above) before blaming R.
+- AI assistants draft a decent function skeleton and are genuinely useful for the tedium of `apply` syntax. They're much worse at noticing that your simulation is subtly wrong!
+
+## Before Next Week
+
+- Homework 2 covers last week's material on R foundations and Quarto and is due next week.
+- Next week: writing code that other people (and future you) can actually read + debugging when it inevitably goes wrong.
