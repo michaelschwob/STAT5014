@@ -1,0 +1,248 @@
+---
+title: "STAT 5014 — Lecture 7: Good Coding, Formatting, & Debugging"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    embed-resources: true
+---
+
+## What "Good Code" Means Here
+
+For a statistician, code is "good" when it is *correct* (which is not the same as "it ran"), *reproducible* (same input, same output regardless of machine), and *readable* (so that a human can understand it). Note that speed comes fourth despite it usually being a priority for us! Code that produces the wrong answer quickly is not an achievement.
+
+## Naming Things
+
+Note how something as simple as descriptive names can aid our understanding of code:
+
+```r
+## what?
+d <- read.csv("f.csv")
+x1 <- d[d$t == 1, ]
+
+## oh okay...
+plots <- read.csv("data/plot_survey.csv")
+treated <- plots[plots$treatment == 1, ]
+```
+
+Common statistical coding conventions use `snake_case`, nouns for data and verbs for functions (e.g., `plot_survey`, `standardize()`), and spelled out words. `n_iter` is fine because everyone knows it, but what is `ni`? No one wants to guess what that means. 
+
+Also, avoid overwriting built-in functions. Naming a variable `c`, `data`, `df`, `mean`, or `T` works right up until it doesn't, and the resulting error message is spectacularly unhelpful.
+
+## Formatting and Comments
+
+Which formatting and commenting styles should you adopt? Honestly, any consistent one. The [tidyverse style guide](https://style.tidyverse.org/) is the default in the R world (spaces around operators, two-space indentation, a line limit around 80 characters). In RStudio, Ctrl/Cmd+Shift+A reformats a selection and the `styler` package handles whole files.
+
+Comment the *why*, not the *what*. The code already says what it does!
+
+```r
+## bad
+x <- x[x > 0] # drop negative values
+
+## good
+x <- x[x > 0] # drop sensor errors; the instrument reports negatives when it fails
+```
+
+Good comments explain a decision, a unit, a source, or where a magic constant came from; bonus points if they refer to specific equation numbers in your paper. Note that a comment explaining a genuinely confusing line is usually a hint that the line wants rewriting instead. 
+
+Finally, every script should open with a header saying what it does, what it needs, and what it produces. We'll see examples of this shortly.
+
+## Structuring a Project
+
+An ideal structure for a project looks like this:
+
+```
+project/
+├── README.md          ## what this project is and how to run it
+├── project.Rproj      ## anyone remember what this does?
+├── data/              ## raw data treated as READ-ONLY
+├── R/                 ## functions sourced by scripts
+├── scripts/           ## (numbered) scripts that generate published results
+├── results/           ## generated output; safe to delete and rebuild
+└── figures/           ## generated figures (if needed!)
+```
+
+Three rules make this work:
+
+1. Raw data is read-only. Never overwrite the file you were given; write cleaned data somewhere else.
+2. Anything in `results/` or `figures/` should be reproducible by running the scripts. That means it can be deleted without loss, which in turn means it can be `.gitignore`'d.
+3. Numbering the scripts tells the next person the order in which to run them.
+
+## Does Any Journal Actually Care?
+
+Luke asked if there are any coding standards that we should follow for publication. Thank you, Luke. 
+
+**Style: no.** I have not personally heard of a journal rejecting a paper over, for example, `camelCase`. There is no statistics equivalent of Python's [`PEP 8`](https://peps.python.org/pep-0008/) that anyone enforces. The aforementioned tidyverse style guide is a community convention rather than a policy, so, while it is encouraged, it is certainly not enforced. Everything in the last two sections is for you and your collaborators, not for a reviewer.
+
+**Reproducibility: increasingly yes.** And this is a good thing for all of us. As an example, JASA has had "Associate Editors for Reproducibility" since 2016. Their reviewers read your `README` files, look at how your code is organized, check whether it is documented, and run some of it. When submitting your manuscript, you would also submit an author contributions checklist describing your artifacts. Fortunately, JASA publishes a template with a prescribed layout:
+
+```
+manuscript/   ## source files for the paper
+data/         ## real data or a facsimile when it is confidential
+code/         ## the methods and utility functions
+output/       ## computed results, simulations, analyses
+README.md     ## language and version, environment tool, how-to-run everything
+```
+
+Compare this to the project structure one section up. It is the same thing, which is not a coincidence: both are answering "can a stranger rebuild this?"
+
+Admittedly, the ASA's umbrella policy across its journals is a bit softer and *strongly encourages* rather than requires. Of course, individual editors and reviewers could have a higher standard. 
+
+The strict end of the spectrum is the Journal of Statistical Software, where code must be commented and readable, packaged for installation with formatted help files, have a GPL-compatible license, and "fully and exactly reproducible on at least one platform."
+
+### Speaking of Licenses...
+
+This one tends to surprise people: a public GitHub repository with no `LICENSE` file is not open-source, it is "all rights reserved." GitHub's own documentation is blunt about it, noting that without a license "the default copyright laws apply" and "no one may reproduce, distribute, or create derivative works from your work."
+
+You really only have two families you should choose from:
+
+1. **Permissive** (MIT, BSD, Apache 2.0): anyone can do anything with your code, including putting it inside something closed and commercial, so long as they keep your copyright notice. This is the common choice in the R package world.
+2. **Copyleft** (GPL-2, GPL-3): anyone can use your code, but anything built on top of it has to carry the same license. R itself is under the GPL.
+
+Either family satisfies any of the strict statistics journals. Note that if your paper uses data that you did not collect, check the provider's terms before you license anything because you cannot relicense someone else's data.
+
+Side quest: [choosealicense.com](https://choosealicense.com/) is maintained by GitHub and is relatively straight forward to use. Let me know if you still need help making a decision, though!
+
+### The Gap Between Policy and Practice
+
+Policies exist, but compliance is another matter. As a fun case study, Xiong and Cribben (2022) took 93 papers that used fMRI data, published in seven statistics journals between 2010 and 2021, and tried to reproduce them. **Only 15.1% had working code and real data that actually reproduced the published results.** Half the papers shared no code at all, and of the half that did, roughly half had code that would not run. *Why might this be?*
+
+So, the standard worth internalizing is not a style guide. It is this: at submission, could someone else clone your project and rebuild your Table 3? When the answer is no, consider reworking your README file, the relative paths, and the environment lockfile.
+
+## Repositories Worth Reading
+
+Because reading good code is faster and more fun than being told about good code, I've included several public repositories below that are excellent examples of coding practices in statistics.
+
+#### Packages
+
+1. [tidyverse/dplyr](https://github.com/tidyverse/dplyr): read `NEWS.md` first, which contains every user-visible change in plain English. That file is the reason you can upgrade dplyr without reading the diff.
+2. [ropensci/targets](https://github.com/ropensci/targets): a tool for making long computations resumable. It passed rOpenSci peer review, so the repository itself is held to a published standard. Look at `CONTRIBUTING.md` and `.lintr`.
+3. [rstudio/renv](https://github.com/rstudio/renv): the lockfile package from Lecture 3. Note that its `README.md` is generated from a `README.Rmd`, so the README cannot quietly deviate from the code it documents.
+4. [paul-buerkner/brms](https://github.com/paul-buerkner/brms): Bayesian multilevel models through Stan. This is a great look at how a package grows to this size without collapsing under itself. Start in `vignettes/`.
+
+#### Papers
+
+1. [jasa-acs/repro-template](https://github.com/jasa-acs/repro-template): the JASA layout from the previous section, published as a GitHub template. Click "Use this template" and the directories and README prompts will be waiting for you.
+2. [lucylgao/clusterpval-experiments](https://github.com/lucylgao/clusterpval-experiments): Gao, Bien, and Witten's materials for *Selective Inference for Hierarchical Clustering*, which won the first JASA Reproducibility Award in 2023. Read the README and notice that it tells you, by figure number, which script produces which figure in the published paper. That should be your bar because it's both reproducible and (frankly) attainable.
+
+If you would rather have the written conventions than the examples, the [rOpenSci packaging guide](https://devguide.ropensci.org/pkg_building.html) is the most specific document in the R world on how a repository should be laid out.
+
+## Defensive Programming
+
+Check assumptions where they're made:
+
+```r
+fit_model <- function(data, response){
+  stopifnot(is.data.frame(data), response %in% names(data), nrow(data) > 0)
+  ...
+}
+```
+
+`stopifnot()` is the cheap version and takes one line. For anything user-facing, `stop()` with a real sentence is more descriptive. The goal is to fail early and loudly; an error on line 3 that tells you what's wrong is better than a silent `NA` that propagates into a figure in your dissertation (I have watched this happen to someone and that someone was me).
+
+## Generalizing Code: Pulling Numbers Out of Text
+
+In addition to having reproducible and defensive code, we also would like our code to be readily applied to other data sets. Sometimes, this is easy because the expected data is in a simple, clean format. Sometimes, this is hard because the expected data is **chaos**.
+
+Let's prepare for chaos. One of you (Cole) works in a lab that extracts measurements and keywords from clinical records, which is a perfect example of where we should plan for the worst. Suppose we have a folder of physician notes and we want the pulse from each record. As an example, here are the relevant lines from two records:
+
+```
+VITAL SIGNS: Pulse of 78 and blood pressure 130/60.
+VITAL SIGNS: BP 142/88, HR 96, afebrile.
+```
+
+Transcribed notes are "free text," so every physician writes vitals differently. Let's read the folder and document pulse in a common convention that we can easily analyze:
+
+```r
+## loads the .txt files; full.names=TRUE ensures that the full path is copied
+files <- list.files("clinical_notes", pattern = "\\.txt$", full.names = TRUE)
+
+## read one note at a time and hand it back as a single string
+read_note <- function(path){
+  lines <- readLines(path, warn = FALSE) # one element per line in the file
+  paste(lines, collapse = " ") # glue them into one long string
+}
+
+## apply our read_note function across all files
+notes <- sapply(files, read_note)
+
+## extract the pulse information from each note
+extract_pulse <- function(txt){
+  pattern <- "Pulse of [0-9]+"
+
+  ## ask first, extract second
+  if(!grepl(pattern, txt)){
+    return(NA_real_)
+  }
+
+  ## the piece of text sitting at the match (e.g., "Pulse of 78")
+  matched <- regmatches(txt, regexpr(pattern, txt))
+
+  ## drop every character that is not a digit, then convert
+  as.numeric(gsub("[^0-9]", "", matched))
+}
+
+## apply our extract_pulse function across all notes
+pulse <- sapply(notes, extract_pulse)
+
+## now we can do statistics pretty easily!
+mean(pulse, na.rm = TRUE) # 75.3
+```
+
+I assume that some of these functions are new to you:
+
+1. `regexpr()` and `regmatches()` usually work as a pair. `regexpr()` reports *where* a match starts and how long it is; `regmatches()` takes that location and gives you the actual characters. Neither does anything useful alone, which is why you always see the two of them together. `grepl()` is the yes-or-no version and needs no partner.
+2. `gsub("[^0-9]", "", matched)` reads as "replace every character that is not a digit with nothing." Inside square brackets, a leading `^` means *not*. One alternative is `sub("Pulse of ", "", matched)`, which strips that one exact prefix, so it's not as generalizable. Pulling the digits out instead means this line survives when `HR` and `heart rate` get added later.
+3. `NA_real_` rather than a bare `NA`. This looks like it makes no difference, and on this folder it doesn't because R coerces the types for you as long as *some* note parses. However, if you run the same function over a folder where the pattern matches nothing at all, then `sapply()` hands you a **logical** vector when you were expecting a numeric. Typed `NA`s (`NA_real_`, `NA_integer_`, `NA_character_`) make your return type a property of your function instead of a property of your data.
+
+Now, the answer. A mean pulse of 75.3 beats per minute. Perfectly plausible, no errors, no warnings. However, it is computed from three of the twelve notes because the other nine wrote the pulse some other way. Widen the pattern to accept `HR`, `P`, and `heart rate`, and the answer moves to 79.8 over eleven notes. Both numbers run. Both look like a heart rate. Only, one of them is correct. Thus, it's a good habit to report how many records you successfully parsed along with your inference:
+
+```r
+cat(sum(!is.na(pulse)), "of", length(pulse), "notes parsed\n") # 3
+```
+
+#### Not Every NA Is a Bug
+
+Here's the subtlety that makes this genuinely difficult. One of our twelve notes reads `VITAL SIGNS: Afebrile, vital signs stable.` There is no pulse in it, so `NA` is the *correct* answer for that note and not a parsing failure.
+
+That means "count the NAs" isn't actually enough. You have two different things wearing the same `NA` hat: *my pattern missed it* and *the clinician never wrote it down*. Those demand opposite responses, though no amount of staring at `mean()` will tell them apart. The only way through is to look at the records that came back empty and check which kind of `NA` they are.
+
+### A Minimal Regex Toolkit
+
+By the way, without any regex experience, that last example might be a bit intimidating. If you want to learn more about it, here is a helpful table, description, and link:
+
+| You want | You write |
+|:--|:--|
+| a digit, a letter, whitespace | `[0-9]` or `\\d`, `[A-Za-z]`, `\\s` |
+| one or more, zero or more, optional | `+`, `*`, `?` |
+| exactly two to three of something | `{2,3}` |
+| either of two patterns | `(?:HR\|pulse)` |
+| capture a piece for extraction | `(...)` around it |
+| anchor to start or end | `^`, `$` |
+
+Those four functions above are most of what you need: `grepl()` to ask, `regexpr()` plus `regmatches()` to pull out, and `sub()`/`gsub()` to replace. 
+
+Side quest: [regex101.com](https://regex101.com/) explains any pattern piece by piece, is free (to an extent), and looks cool, too.
+
+LLMs are genuinely good at writing regular expressions but genuinely bad at knowing what your data looks like. Also, you might not be able to give them your data! So, feel free to ask them for the pattern, but *always* check the match rate against the real data.
+
+## Debugging
+
+When your code breaks, consider this productive sequence:
+
+1. Read the error message. Actually read it. The first error is the real one; later errors are often just consequences.
+2. Run `traceback()` right after an error to see the chain of calls that led there, which gives the location of the error when the message doesn't.
+3. Narrow it down. Run the pipeline one line at a time and inspect with `str()`. Most bugs are an object not being the shape it was assumed to be.
+4. Use `browser()` to pause execution inside a function and drop into an interactive prompt with the local variables available. Type `n` for the next line, `c` to continue, and `Q` to quit. This is the single most useful debugging tool in R and almost nobody knows about it!
+5. Set `options(warn = 2)` to promote warnings to errors, which is how you find where an ignorable-looking warning actually came from.
+
+## Getting Unstuck
+
+The skill that actually determines whether a person can work independently is reading documentation and asking good questions. Start with `?fun` and its Examples, then the package vignette (`browseVignettes("packagename")`), which is usually solid.
+
+When asking a question, make a **reprex**, which is the smallest self-contained example that reproduces the problem. The `reprex` package formats one for you. Building the reprex solves the problem outright maybe half the time because stripping everything else away reveals the assumption that was wrong all along. That's not a coincidence; that's part of the process.
+
+## Before Next Week
+
+- Homework 3 covers this week and last week, so it's worth revisiting anything above that felt shaky. It's due in two weeks.
+- Next week: data visualization, so if you have a data set that you would like to see visualized, send it to me ASAP.
