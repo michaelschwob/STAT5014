@@ -1,0 +1,96 @@
+---
+title: "STAT 5014 — Homework 3: Inheriting Someone Else's Analysis"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    embed-resources: true
+---
+
+Let's set the scene. You have inherited `messy_analysis.R`, which is the appropriately named statistical pipeline for a study written by someone who has since graduated and stopped answering emails. An aptly spooky situation for an October homework.
+
+It runs (eventually), and it produces numbers, but the numbers are wrong. Your job is to correct the code and turn it into a repository that a reproducibility reviewer would accept. Think JASA-level standards.
+
+## Setup
+
+You'll need `messy_analysis.R` and `data/extracted_records.csv` from our class repository. The data comprise 200 synthetic patient records that are frankly a bit messy.
+
+The first thing you should do is initialize a new private repository and commit the raw data before you run anything. (I am not going to tell you *why* yet. Consider this a psychological thriller of a homework.)
+
+---
+
+## Part 1: Get It Running, Then Audit It
+
+The messy script fails in several places. Work through it one failure at a time, and keep a short log of (i) what you ran, (ii) what it said, and (iii) what you changed. Report this log as 2-3 sentences for each failure.
+
+By the way, the first failure has nothing to do with statistics, and the second is a Lecture 6 error you have already seen. Getting past both reveals a third problem that produces no error at all, so look at what the output *says* rather than whether it appeared. Okay, that's enough hints.
+
+Now the uncomfortable part. The script runs, but it is still wrong. Two errors yield incorrect numbers, yet neither one produces an error or a warning. Find both errors. For each, report (i) what the script computes, (ii) what the correct value is, and (iii) one sentence on how you knew to look.
+
+Okay, fine. I'm feeling a bit generous because the NBA season is about to start, so here are more hints regarding these two errors:
+
+1. One is obvious if you ask whether each number is physically possible for the quantity it claims to measure. Read the summary output as a clinician would, not as a programmer.
+2. One is about which rows made it into the analysis at all. Checking `nrow()` before and after a filter is a thirty-second habit that will help you catch it.
+
+Once you catch these two errors, it's time to answer the question that matters. The script intends to report a difference in mean pulse between two clinics. **What does it report, what is the correct value, and by what factor is the initial claim wrong?** Discuss this in 2-3 sentences.
+
+---
+
+## Part 2: Restructure It as a Research Compendium
+
+Once you have a functioning and correct script, it's time to show off all your hard work. Publish it in a repository that meets the standards of a relatively strict statistics journal.
+In particular, rebuild the project in the JASA layout from Lecture 7. Your repository should look like this:
+
+```
+hw3/
+├── README.md
+├── LICENSE
+├── .gitignore
+├── data/            ## raw data
+├── code/            ## functions sourced by the scripts
+├── scripts/         ## (numbered) scripts that run code in order
+├── output/          ## tables and figures
+└── manuscript/      ## your write-up for Part 1
+```
+
+A few notes:
+
+1. `data/` is read-only. No script you write may modify anything in it. If your pipeline produces a cleaned data set, that is output -- not data.
+2. `code/` holds functions that run nothing when sourced. `scripts/` holds the files that call the functions and are numbered in run order.
+3. Nothing in `output/` should be committed. Delete the whole directory, re-run your pipeline, and confirm it comes back.
+4. Your write-up for Part 1 should be in R Markdown format.
+
+Side quest: to get trees like above for your README file, check out [devtoollab.com/tools/folder-tree-generator](https://devtoollab.com/tools/folder-tree-generator), which turns an indented outline into a clean tree with comments aligned the way mine are above. If you want to generate it on your local machine once your repository exists, the `tree` command does it from your directory:
+
+```bash
+tree --charset=UTF-8 -a -L 1 --dirsfirst -I '.git|output'
+```
+
+Note that Mac users need `brew install tree` first; on Windows the web version is less trouble than the built-in `tree`.
+
+---
+
+## Some Things I'll Be Looking For
+
+
+1. Using functions instead of copy-pasting. The original script summarizes three variables with three pasted blocks. That's not efficient nor clean.
+2. Use argument checks to find bugs. For example, a `stopifnot()` or a `stop()` with a comment saying which bug it catches will be very helpful as you develop your programming practices.
+3. Whatever you decide about the missing values and the inconsistent labels (perhaps another hint??), the script should say out loud how many records it changed and how many it kept.
+4. Set a seed at the top of your script. This is a necessity for reproducibility.
+
+Beyond that, the usual: descriptive names, comments that explain the why, a results table somebody can interpret without the script next to it, and relative paths only.
+
+---
+
+## Submission Checklist
+
+Share your private GitHub repository with me before the due date for this homework. I will clone it, delete `output/`, and run your pipeline. You pass if you complete the following:
+
+- [ ] Added me (`@michaelschwob`) as a collaborator on the private repository.
+- [ ] Found and corrected the three programming errors and the two statistical errors.
+- [ ] `manuscript/` holds your write-up in R Markdown format. The write-up has your failure log from Part 1, both statistical errors with the script's value next to the correct one, and your 2-3 sentences on the difference in mean pulse.
+- [ ] Built the tree from Part 2 with `README.md`, `LICENSE`, and `.gitignore` at the root.
+- [ ] One function summarizes all three vital signs, and at least one `stopifnot()` or `stop()` guards against an error you found.
+- [ ] A seed is set at the top of your analysis script.
+- [ ] `output/` is gitignored and absent from the repository, and deleting it and rerunning brings it back.
+- [ ] No absolute paths anywhere.
