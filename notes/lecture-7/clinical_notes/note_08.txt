@@ -1,0 +1,12 @@
+Sample Name: Consult - Dyspnea
+Medical Specialty: Cardiovascular / Pulmonary
+
+SUBJECTIVE: The patient reports dyspnea on exertion that has worsened over three months.
+
+PHYSICAL EXAMINATION
+VITAL SIGNS: BP 130-140/80-90 on repeat measurement, pulse 84.
+LUNGS: Decreased breath sounds at the bases.
+
+IMPRESSION:
+1. Dyspnea on exertion, etiology unclear.
+2. Essential hypertension.

@@ -1,0 +1,12 @@
+Sample Name: Progress Note - CHF
+Medical Specialty: Cardiovascular / Pulmonary
+
+SUBJECTIVE: The patient reports increasing lower extremity swelling over the past week.
+
+PHYSICAL EXAMINATION
+VITAL SIGNS: Blood pressure is 156/94 with a heart rate of 88.
+EXTREMITIES: 2+ pitting edema bilaterally.
+
+IMPRESSION:
+1. Congestive heart failure, acute on chronic.
+2. Essential hypertension.

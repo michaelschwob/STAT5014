@@ -1,0 +1,11 @@
+Sample Name: SOAP - Palpitations
+Medical Specialty: Cardiovascular / Pulmonary
+
+SUBJECTIVE: The patient describes episodes of palpitations lasting several minutes.
+
+PHYSICAL EXAMINATION
+VITAL SIGNS: Pulse 64. Blood pressure 110/70.
+HEART: Irregularly irregular rhythm.
+
+IMPRESSION:
+1. Atrial fibrillation, paroxysmal.

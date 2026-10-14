@@ -1,0 +1,12 @@
+Sample Name: Consult - Chest Pain
+Medical Specialty: Cardiovascular / Pulmonary
+
+SUBJECTIVE: The patient presents with intermittent chest pain, worse on exertion.
+
+PHYSICAL EXAMINATION
+Vitals: T 98.6, P 72, BP 118/76, RR 16.
+HEART: Regular rate and rhythm without murmur.
+
+IMPRESSION:
+1. Atypical chest pain.
+2. Hyperlipidemia.

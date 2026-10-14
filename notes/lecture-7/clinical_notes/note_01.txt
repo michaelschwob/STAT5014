@@ -1,0 +1,14 @@
+Sample Name: SOAP - Shortness of Breath
+Medical Specialty: Cardiovascular / Pulmonary
+
+SUBJECTIVE: The patient is admitted for shortness of breath, continues to do fairly well. The patient has chronic atrial fibrillation, on anticoagulation, INR of 1.72.
+
+PHYSICAL EXAMINATION
+VITAL SIGNS: Pulse of 78 and blood pressure 130/60.
+LUNGS: Clear.
+HEART: A soft systolic murmur in the aortic area.
+
+IMPRESSION:
+1. Status shortness of breath responding well to medical management.
+2. Atrial fibrillation, chronic, on anticoagulation.
+3. Aortic stenosis.

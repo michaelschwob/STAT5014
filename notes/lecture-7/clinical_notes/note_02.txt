@@ -1,0 +1,12 @@
+Sample Name: Followup - Hypertension
+Medical Specialty: Cardiovascular / Pulmonary
+
+SUBJECTIVE: The patient returns for routine followup of hypertension. Reports good adherence to medications.
+
+PHYSICAL EXAMINATION
+VITAL SIGNS: BP 142/88, HR 96, afebrile.
+LUNGS: Clear to auscultation bilaterally.
+
+IMPRESSION:
+1. Essential hypertension, poorly controlled.
+2. Obesity.

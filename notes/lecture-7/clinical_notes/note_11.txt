@@ -1,0 +1,11 @@
+Sample Name: Followup - Atrial Fibrillation
+Medical Specialty: Cardiovascular / Pulmonary
+
+SUBJECTIVE: The patient returns for anticoagulation management. INR of 2.4 today.
+
+PHYSICAL EXAMINATION
+VITAL SIGNS: Pulse of 90 and blood pressure 136/78.
+HEART: Irregularly irregular.
+
+IMPRESSION:
+1. Atrial fibrillation, chronic, on anticoagulation.

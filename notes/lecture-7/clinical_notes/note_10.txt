@@ -1,0 +1,12 @@
+Sample Name: SOAP - Syncope
+Medical Specialty: Cardiovascular / Pulmonary
+
+SUBJECTIVE: The patient had a witnessed syncopal episode while standing.
+
+PHYSICAL EXAMINATION
+VITAL SIGNS: HR 102, BP 98/58 supine.
+NEUROLOGIC: Nonfocal.
+
+IMPRESSION:
+1. Syncope, likely orthostatic.
+2. Dehydration.

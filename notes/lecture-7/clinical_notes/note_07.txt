@@ -1,0 +1,12 @@
+Sample Name: Followup - Aortic Stenosis
+Medical Specialty: Cardiovascular / Pulmonary
+
+SUBJECTIVE: The patient was seen in followup regarding known aortic stenosis.
+
+PHYSICAL EXAMINATION
+VITAL SIGNS: The patient's blood pressure was 128/84 and the pulse was 70.
+HEART: Harsh systolic ejection murmur.
+
+IMPRESSION:
+1. Aortic stenosis, moderate to severe.
+2. Atrial fibrillation, chronic.

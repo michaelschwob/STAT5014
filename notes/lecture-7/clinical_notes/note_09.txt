@@ -1,0 +1,12 @@
+Sample Name: Progress Note - Post-MI
+Medical Specialty: Cardiovascular / Pulmonary
+
+SUBJECTIVE: The patient is three weeks out from myocardial infarction and is tolerating cardiac rehab.
+
+PHYSICAL EXAMINATION
+VITAL SIGNS: Pulse of 58 and blood pressure 104/62.
+HEART: Regular rate and rhythm.
+
+IMPRESSION:
+1. Status post myocardial infarction.
+2. Bradycardia, likely medication related.

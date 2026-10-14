@@ -1,0 +1,11 @@
+Sample Name: Consult - Murmur
+Medical Specialty: Cardiovascular / Pulmonary
+
+SUBJECTIVE: The patient was referred for evaluation of an incidental murmur.
+
+PHYSICAL EXAMINATION
+VITAL SIGNS: Blood pressure 122/74, heart rate 76 and regular.
+HEART: Grade 2/6 systolic murmur.
+
+IMPRESSION:
+1. Systolic murmur, likely benign.

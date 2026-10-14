@@ -1,0 +1,11 @@
+Sample Name: Discharge Summary - Pneumonia
+Medical Specialty: Cardiovascular / Pulmonary
+
+SUBJECTIVE: The patient has completed a course of antibiotics and reports resolution of cough.
+
+PHYSICAL EXAMINATION
+VITAL SIGNS: Afebrile, vital signs stable.
+LUNGS: Improved air entry bilaterally.
+
+IMPRESSION:
+1. Community-acquired pneumonia, resolving.
