@@ -101,8 +101,8 @@ based on class progress and priorities.
 | 5 | September 30 | R Foundations and Quarto | Homework 1 due |
 | 6 | October 7 | R Control Flow, Vectorization, and Functions | |
 | 7 | October 14 | Good Coding, Debugging, and Getting Unstuck | Homework 2 due |
-| 8 | October 21 | Data Visualization | Homework 3 due |
-| 8 | October 28 | Data Visualization (continued) |  |
+| 8 | October 21 | Data Visualization |  |
+| 8 | October 28 | Data Visualization (continued) | Homework 3 due |
 | 9 | November 4 | Simulation and Reproducibility | Homework 4 due |
 | 10 | November 11 | Introduction to Python and VS Code |  |
 | 11 | November 18 | Python (continued) | Homework 5 due |
