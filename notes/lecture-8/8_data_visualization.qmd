@@ -231,7 +231,7 @@ How far should you take the theme? Well... `theme()` has about ninety arguments,
 
 ## Color That Everyone Can Read
 
-Now let's talk color theory, particularly the theory that we should make graphics for all. For some populations (men of Northern European ancestry), color vision deficiency is as high at 8%. Even here in the US, the Multi-Ethnic Pediatric Eye Disease Study screened 4,005 children in Los Angeles and Riverside counties and found red-green deficiency in 5.6% of Caucasian men, 3.1% of Asian men, 2.6% of Hispanic men, and 1.4% of African American men, against 0% to 0.5% of women in every group (Xie et al., 2014, *Ophthalmology*). Thus, it is likely that, at some point, an audience member or reader of your paper may need colorblind-friendly graphics.
+Now let's talk color theory, particularly the theory that we should make graphics for all. For some populations (men of Northern European ancestry), color vision deficiency is as high at 8%. Even here in the US, the Multi-Ethnic Pediatric Eye Disease Study screened 4,005 people in Los Angeles and Riverside counties and found red-green deficiency in 5.6% of Caucasian men, 3.1% of Asian men, 2.6% of Hispanic men, and 1.4% of African American men, against 0% to 0.5% of women in every group (Xie et al., 2014, *Ophthalmology*). Thus, it is likely that, at some point, an audience member or reader of your paper may need colorblind-friendly graphics.
 
 Unfortunately, `R`'s default colors are not that. Here is the same scatterplot we've looked at with the default palette and with that palette pushed through `deutan()`. Visually, the left panel has three groups; the right panel only has two.
 
