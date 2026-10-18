@@ -1,0 +1,331 @@
+---
+title: "STAT 5014 — Lecture 8: Data Visualization"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    embed-resources: true
+---
+
+```{r}
+#| include: false
+dir.create("output", showWarnings = FALSE)
+```
+
+Figures, far more reliably than tables, are the thing that shows you a problem in your data. They also help elevate your manuscript from a document to a publication! This week, we'll cover `R`'s base graphics, `ggplot2`, and plotting philosophy. That's right... we're putting the "Ph" in "Ph.D." today.
+
+## Look at Your Data First
+
+Have you heard of exploratory data analysis? EDA consists of exploring the data prior to modeling, is an exceptional habit to build, and is at least 75% plotting.  
+
+```{r}
+#| label: fig-raw
+#| fig-cap: "Biomass against canopy cover. The two sentinels at -999 flatten everything else."
+#| fig-width: 6
+#| fig-height: 4.5
+#| warning: false
+## let's load some data
+raw <- read.csv("plot_survey.csv") # same as for HW 2!
+
+## canopy came in as character, so it has to be coerced before it can be drawn
+plot(as.numeric(raw$canopy), raw$biomass,
+     xlab = "Canopy cover (%)", ylab = "Biomass")
+```
+
+Based on HW 2, y'all seem capable of using the simple `plot` function in `R`, so I won't get into those details...
+
+Instead, let's look at the two points that sit at $-999$. Every other plot in the survey is squashed into a flat band at the top, and whatever relationship exists between canopy and biomass is completely invisible. If we recode those two sentinels to `NA` and plot it again, then a clear positive relationship should appear.
+
+Let's take a step back and reflect on HW 2. This data problem is visible in a single `plot()` call. You didn't need to look through the data table or try various R commands to identify anomalies. In fact, you didn't have to compute anything at all!
+
+The classic version of this argument is [**Anscombe's quartet**](https://en.wikipedia.org/wiki/Anscombe%27s_quartet). Francis Anscombe created four $x$-$y$ pairs and, across all four, the mean of $y$ is 7.50, the standard deviation is 2.03, the correlation is 0.816, and the fitted slope is 0.500. Every summary agrees to three digits:
+
+```{r}
+#| label: fig-anscombe
+#| fig-cap: "Anscombe's quartet: identical summaries, four different pictures."
+#| fig-width: 7
+#| fig-height: 6
+par(mfrow = c(2, 2))
+for (i in 1:4) {
+  x <- anscombe[[paste0("x", i)]]
+  y <- anscombe[[paste0("y", i)]]
+  plot(x, y, pch = 19, xlim = c(3, 20), ylim = c(2, 14), main = paste("Set", i))
+  abline(lm(y ~ x), lwd = 2)
+}
+par(mfrow = c(1, 1))
+```
+
+One is a sensible linear relationship, one is a clean parabola, one is a straight line with a single outlier dragging it, and one is a vertical stack of points plus one lonely observation. Same regression, four different stories. Without plotting, you would not be able to identify that these fits belong to entirely different data sets.
+
+So, get in the habit of plotting your data (e.g., `plot`, `hist`, `boxplot`) before you model it. It is the cheapest habit that keeps you sane.
+
+BTW: `par(mfrow = c(1, 2))` tiles the device into one row and two columns, which is how you put two plots side by side. You'll need to set it back to `c(1, 1)` when you're done, or every later figure is tiled, too.
+
+## Base Graphics
+
+Base `R`'s graphics are quick, always installed, and good at the job they are for, which is *investigation*. Before we learn some *base*-ic commands, let's clean the data:
+
+```{r}
+plots <- read.csv("plot_survey.csv")
+plots$canopy[plots$canopy == "not recorded"] <- NA
+plots$canopy <- as.numeric(plots$canopy)
+plots$biomass[plots$biomass == -999] <- NA
+## what do we accomplish here?
+```
+
+The four horsemen of basic plotting:
+
+1. `plot(x, y)` for two continuous variables.
+2. `hist(x)` for one variable's distribution. Try two or three values of `breaks` before you believe the shape.
+3. `boxplot(y ~ group)` for a continuous variable split by a factor; uses the same formula formatting as `lm()`.
+4. `pairs(df)` for a whole data frame at once, which is the fastest way to find oddly behaving variables.
+
+Common arguments in base `R` plotting are `pch` (point shape), `col` (color), `cex` (size), `lwd` (line width), `xlim`/`ylim` (axes limits), and `main`/`xlab`/`ylab` (titles and tables).
+
+Generally, you build a base plot by drawing once and then adding to it:
+
+```{r}
+#| label: fig-base-layers
+#| fig-cap: "Base graphics: draw once, then add to it."
+#| fig-width: 6
+#| fig-height: 4.5
+thinned <- plots$treatment == "thinned"
+
+plot(plots$canopy, plots$biomass, pch = 19, col = "grey60",
+     xlab = "Canopy cover (%)", ylab = "Biomass")
+abline(lm(biomass ~ canopy, data = plots), lwd = 2) # adds a linear fit to the plot
+points(plots$canopy[thinned], plots$biomass[thinned], pch = 19, col = "darkgreen") # makes the treated plots darkgreen
+legend("topleft", legend = c("Control", "Thinned"),
+       pch = 19, col = c("grey60", "darkgreen"), bty = "n") # adds a legend to the plot
+```
+
+Base graphics are a *painting* model rather than a description. Once a point is drawn it is pixels, so to change the fifth thing you drew you redraw everything from the top (i.e., start over with a blank canvas). For a figure that gets revised thirty times before submission, that gets old fast (ask me how I know).
+
+Scatterplots are not the only thing base `R` does well. A boxplot splits a continuous variable by a factor:
+
+```{r}
+#| label: fig-base-boxplot
+#| fig-cap: "Biomass by treatment."
+#| fig-width: 5.5
+#| fig-height: 4
+boxplot(biomass ~ treatment, data = plots,
+        xlab = "Treatment", ylab = "Biomass", col = "grey85")
+```
+
+Note the formula `biomass ~ treatment`, which reads as "biomass explained by treatment." You will see that same syntax again in `lm()`, `glm()`, and most modeling functions in `R`.
+
+## Why ggplot2 Exists
+
+The powerful `R` plotting ecosystem `ggplot2` makes very little sense until you know what problem it was built to solve.
+
+Base `R` gives you a catalog of named chart types. A scatterplot is `plot()`, a histogram is `hist()`, a bar chart is `barplot()`, and each has its own arguments that you learn separately. That works until you want something the catalog doesn't have.
+
+Leland Wilkinson's *The Grammar of Graphics* (2005) argued that named chart types are the wrong abstraction. A scatterplot is not a *thing*; it is a combination of components common enough to have earned a name. However, if we instead name the components, not only do we recover the named combinations, but we have more flexibility as plotters.
+
+Hadley Wickham adapted this into the **layered grammar of graphics** (Wickham, 2010, *JCGS* 19(1), 3–28), which is what `ggplot2` implements. In this view, a graphic is a collection of components: **data**, an **aesthetic mapping** from variables to visual properties, one or more **geoms** that draw something, a **statistical transformation** applied before drawing, **scales** that turn data values into visual ones, a **coordinate system**, and **facets** that repeat the whole thing across subsets.
+
+So, instead of memorizing forty chart types, you are composing seven components. For example, swapping `geom_point()` for `geom_hex()` modifies only that part of the plot; you do not need to start over from the top as in the *painting* model of base `R`. As another example, adding `facet_wrap(~ site)` turns one figure into three without touching the rest of your plotting code. In other words, the specification is an object that you modify, not a painting that you redo.
+
+## ggplot2 Mechanics
+
+Perhaps to start, we should use `ggplot2` to make the same scatterplot that we made with base `R`:
+
+```{r}
+#| label: fig-ggplot-first
+#| fig-cap: "The ggplot2 scatterplot."
+#| fig-width: 6.5
+#| fig-height: 4.5
+library(ggplot2) # load ggplot2
+
+## what happens if we run one line at a time?
+ggplot(plots, aes(x = canopy, y = biomass)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", formula = y ~ x) +
+  labs(x = "Canopy cover (%)", y = "Biomass") +
+  theme_minimal()
+```
+
+Splitting it by treatment only takes one more mapping:
+
+```{r}
+#| label: fig-ggplot-treatment
+#| fig-cap: "One extra mapping splits the points and the fits by treatment."
+#| fig-width: 6.5
+#| fig-height: 4.5
+ggplot(plots, aes(x = canopy, y = biomass, color = treatment)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", formula = y ~ x) +
+  labs(x = "Canopy cover (%)", y = "Biomass") +
+  theme_minimal()
+```
+
+Five functions do most of the work: `ggplot()` names the data and the mapping, `geom_*()` adds a drawing layer, `scale_*()` controls how mappings become visual, `facet_wrap()` splits into small multiples, and `theme_*()` controls everything that is not data.
+
+Anything you map in `ggplot()` is inherited by every layer below it. For example, `color = treatment` colored the points *and* the fitted lines. If you put a mapping inside a single `geom_*()` instead, then only that layer sees it.
+
+Note what happens to the five rows you cleaned: `ggplot2` drops them and prints "Removed 5 rows containing missing values." Always read those messages to find unintended behavior.
+
+### Mapping vs. Setting
+
+Note that inside `aes()` means "this depends on the data." Outside means "this is a fixed value." As an example:
+
+```{r}
+#| eval: false
+geom_point(aes(color = site)) # MAP to a variable: a legend, one color per group
+geom_point(color = "blue") # SET to a constant: everything blue, no legend
+```
+
+## Building One Good Figure
+
+Just for fun, let's go through creating a publication-ready figure and improve the survey from the default scatterplot. Here's what *my* typical `ggplot` workflow looks like:
+
+1. Start from the default: `ggplot(plots, aes(canopy, biomass)) + geom_point()`. Grey, axes labeled with variable names, points piled on top of each other. There's no shame in it; this is what looking at data produces.
+2. Handle the overplotting. 235 points in a small panel overlap badly; `alpha = 0.65` lets you see where the density actually is.
+3. Bring in the second variable. Color by `treatment`, and choose a color palette rather than taking R's default. We'll discuss *why* later.
+4. Facet: `facet_wrap(~ site)` is `ggplot2`'s best feature and the fastest way to learn whether a pattern holds everywhere or is being driven by one group.
+5. Label everything: axes with units, a descriptive title, and an appropriate caption.
+6. Modify the theme.
+
+```{r}
+#| label: fig-final
+#| warning: false
+#| fig-cap: "The finished figure."
+#| fig-width: 7.5
+#| fig-height: 4.3
+## tidy up the factors first: order the levels the way you want them read and label them the way you want them printed
+plots$treatment <- factor(plots$treatment,
+                          levels = c("control", "thinned"),
+                          labels = c("Control", "Thinned"))
+plots$site <- factor(plots$site,
+                     levels = c("riparian", "valley", "ridge"),
+                     labels = c("Riparian", "Valley", "Ridge"))
+
+ggplot(plots, aes(x = canopy, y = biomass, color = treatment, fill = treatment)) +
+  geom_point(size = 1.9, alpha = 0.65) +
+  geom_smooth(method = "lm", formula = y ~ x, alpha = 0.15) +
+  facet_wrap(~ site) +
+  scale_color_viridis_d(name = NULL, end = 0.7) + # we'll discuss this in the next section...
+  scale_fill_viridis_d(name = NULL, end = 0.7) + # ...and this
+  labs(
+    title = "Biomass rises with canopy cover at every site",
+    subtitle = "The thinning gap is clear on ridges, yet slightly at the other two sites",
+    x = "Canopy cover (%)",
+    y = "Biomass (units not recorded)",
+    caption = "235 of 240 survey plots; 5 omitted for missing canopy or biomass."
+  ) +
+  theme_minimal() + # my preferred ggplot theme...
+  theme(
+    plot.title = element_text(face = "bold"),
+    plot.title.position = "plot", # pushes title all the way to the left
+    legend.position = "top",
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(face = "bold")
+  ) # ...and my preferred theme settings
+
+ggsave("output/biomass_canopy.png", width = 7.5, height = 4.3, dpi = 300)
+```
+
+Note that you should save the figure at the size it will actually appear. Do not be one of those presenters with blown up graphics that have blurry labels. Also, consider using `.pdf` rather than `.png` for anything going into a paper; some journals may not even give you the choice. A PDF is vector, so it stays sharp when a referee zooms in; a PNG is pixels. Many journals have dpi requirements (often 600+), which you can directly specify in `ggsave()`.
+
+How far should you take the theme? Well... `theme()` has about ninety arguments, and you can spend an afternoon in there. Five settings and a good `labs()` call is probably enough.
+
+## Color That Everyone Can Read
+
+Now let's talk color theory, particularly the theory that we should make graphics for all. For some populations (men of Northern European ancestry), color vision deficiency is as high at 8%. Even here in the US, the Multi-Ethnic Pediatric Eye Disease Study screened 4,005 children in Los Angeles and Riverside counties and found red-green deficiency in 5.6% of Caucasian men, 3.1% of Asian men, 2.6% of Hispanic men, and 1.4% of African American men, against 0% to 0.5% of women in every group (Xie et al., 2014, *Ophthalmology*). Thus, it is likely that, at some point, an audience member or reader of your paper may need colorblind-friendly graphics.
+
+Unfortunately, `R`'s default colors are not that. Here is the same scatterplot we've looked at with the default palette and with that palette pushed through `deutan()`. Visually, the left panel has three groups; the right panel only has two.
+
+```{r}
+#| label: fig-deutan-pair
+#| fig-cap: "The same figure drawn with R's default palette and then simulated for deuteranopia."
+#| fig-subcap: ["As drawn", "As a deuteranopic reader sees it"]
+#| layout-ncol: 2
+#| fig-width: 5
+#| fig-height: 4
+#| warning: false
+
+library(colorspace) # for deutan function
+default3 <- scales::hue_pal()(3) # the first three colors R gives by default
+draw_sites <- function(cols){
+  ggplot(plots, aes(canopy, biomass, color = site)) +
+    geom_point(size = 1.8, alpha = 0.8) +
+    scale_color_manual(values = cols, name = NULL) +
+    labs(x = "Canopy cover (%)", y = "Biomass") +
+    theme_minimal(base_size = 10) +
+    theme(legend.position = "top")
+}
+draw_sites(default3) # as drawn
+draw_sites(deutan(default3)) # as seen
+```
+
+Here are three habits to get used to:
+
+1. Start from a palette built for all populations. For continuous quantities, consider **viridis** (`scale_color_viridis_c()`), which is perceptually uniform, so equal steps in the data look like equal steps in the color. For categorical ones, the **Okabe-Ito** palette, which was designed for color vision deficiency and has been in base `R` since version 4.0: `palette.colors(palette = "Okabe-Ito")`.
+2. Never encode anything by color alone. Pair it with shape, linetype, or a facet, so the figure still works when the information in the color is gone. One test is to print your graphic in black-and-white; does it still make sense?
+3. Check instead of assuming. `colorspace` simulates all three common deficiencies with `deutan()`, `protan()`, and `tritan()`, and `colorspace::demoplot()` will show you a figure through each one. It takes about ten seconds and is the only way to actually know.
+
+## Putting Points on a Map
+
+Our survey has no coordinates, which is a bit upsetting to me... If you ever design a field collection, record where. Spatial information is incredibly important. Let's just assume that we do have coordinates, so we can plot a map:
+
+```{r}
+#| label: fig-map
+#| fig-cap: "Survey sites on Virginia county boundaries."
+#| fig-width: 6.5
+#| fig-height: 4
+library(maps) # needed to get the boudnaries
+
+## invented coordinates for demonstration
+sites <- data.frame(
+  site = c("Riparian", "Valley", "Ridge"),
+  lon = c(-80.42, -80.05, -80.58),
+  lat = c(37.23, 37.14, 37.35)
+)
+
+ggplot() +
+  ## annotation_borders() takes a `colour` argument; it is this function's own
+  ## argument, not an aesthetic like most ggplot functions
+  annotation_borders("county", regions = "virginia", colour = "grey88") +
+  annotation_borders("state", regions = "virginia", colour = "grey45") +
+  geom_point(data = sites, aes(lon, lat, color = site), size = 3) +
+  scale_color_viridis_d(name = NULL, end = 0.7) +
+  coord_quickmap(xlim = c(-81.5, -79.2), ylim = c(36.6, 37.9)) +
+  theme_void()
+```
+The `maps` package contains the boundary information, and `ggplot2` wraps them in `annotation_borders()`, which is a layer like any other. If you find older code calling `borders()`, that is the same function under its previous name; it was deprecated in `ggplot2` 4.0.0. Fortunately, the arguments did not change.
+
+Note the use of `coord_quickmap()`. A degree of longitude is shorter than a degree of latitude everywhere except the equator, so plotting lon and lat on equal axes gives you a squashed map. Drop that line and run it again to see what I mean.
+
+Side quest: for anything beyond a quick map, the best route is `sf`, where a spatial data frame is an ordinary data frame with a geometry column; `geom_sf()` easily handles the projection for you.
+
+## Figures in Quarto
+
+Chunk options control figure output directly:
+
+````{verbatim}
+```{r}
+#| label: fig-biomass
+#| fig-cap: "Biomass increases with canopy cover at all three sites."
+#| fig-width: 7.5
+#| fig-height: 4.3
+#| echo: false
+ggplot(plots, aes(canopy, biomass, color = treatment)) + geom_point()
+```
+````
+
+Label a figure chunk with a `fig-` prefix and you can cross-reference it in prose as `@fig-biomass` just like `\ref` worked for you in LaTeX.
+
+Side quest: for multi-panel figures built from separate plots, `patchwork` combines `ggplot2` objects with `p1 + p2`.
+
+## Where to Look This Up
+
+You are not expected to memorize any of this; I certainly don't.
+
+- The [ggplot2 cheatsheet](https://rstudio.github.io/cheatsheets/data-visualization.pdf) is two pages and covers geoms, aesthetics, scales, facets, and themes.
+- [*ggplot2: Elegant Graphics for Data Analysis*](https://ggplot2-book.org/) by Wickham, Navarro, and Pedersen is free online and is the best reference when the cheatsheet isn't enough.
+- The [function reference](https://ggplot2.tidyverse.org/reference/) has a runnable example on every page, which is usually faster than a search engine.
+
+## Before Next Week
+
+- Install Miniforge and VS Code if you haven't already (the HW0 checklist has the steps for both operating systems). Please do this *before* Wednesday's lecture.
+- Next week: we start Python, framed mostly as "how is this different from R?"
