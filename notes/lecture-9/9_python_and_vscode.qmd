@@ -1,0 +1,222 @@
+---
+title: "STAT 5014 — Lecture 9: Python and VS Code"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    embed-resources: true
+---
+
+Because you already know how to program, this lecture is mostly "how is Python different from `R`" rather than a comprehensive introduction to Python. We'll also spend a good amount of time discussing the basics of VS Code. Speaking of...
+
+## VS Code Basics
+
+VS Code is Microsoft's free (and very popular) code editor. Today, we will discuss five things to get Python running:
+
+### 1. The Command Palette
+
+The Command Palette, which is a searchable list of every command VS Code knows, can be accessed with **Ctrl+Shift+P** (**Cmd+Shift+P** on a Mac).
+
+You do not need to memorize menus or shortcuts. Just open the palette and type what you want. Almost everything below can be executed with palette commands, though we will use the GUI when possible.
+
+For example, here are four commands worth running:
+
+1. `Preferences: Color Theme` sets the editor's colors. Shout out to "Solarized Dark"
+2. `View: Toggle Word Wrap` stops long lines from running off the right edge.
+3. `Preferences: Open User Settings (JSON)` opens your settings file (which is where we will end up if your play button misbehaves).
+4. `Developer: Reload Window` restarts the editor without closing it; this fixes a surprising number of extension problems.
+
+### 2. Open a Folder, Not a File
+
+Use **File > Open Folder** and point VS Code at your project directory (i.e., the repository folder with your code and data) rather than opening a single code file on its own.
+
+VS Code calls the opened folder your *workspace*. Relative paths resolve from there, the terminal starts there, and its in the Explorer sidebar that we'll discuss shortly. If you open a lone file, then relative paths might break.
+
+### 3. The Activity Bar
+
+The **activity bar** is the vertical strip of icons on the far left. Today, you only need two tabs:
+
+1. **Explorer** (the pages icon) lists the files in your workspace.
+2. **Extensions** (the blocks icon) is where you install language support and fun little extras.
+
+Microsoft's [Data Science in VS Code](https://code.visualstudio.com/docs/datascience/overview) page provides recommended extensions for Python work. For this course, the extensions worth knowing are **Python**, **Jupyter**, **R**, **Julia**, and [**Quarto**](https://quarto.org/docs/tools/vscode), which renders and previews the `.qmd` files like in RStudio. Also, there are [completely dumb extensions](https://www.xda-developers.com/silly-vs-code-extensions/) that I do not at all recommend and would hate to put on your radar, so please do not click [this link](https://www.xda-developers.com/silly-vs-code-extensions/).
+
+We will cover other activity bar tabs, such as **Source Control** and **Run and Debug**, next week.
+
+### 4. The Integrated Terminal
+
+**Ctrl+(backtick)** opens a terminal inside VS Code in your workspace folder. It is an ordinary shell, so everything from Lecture 1 works here, such as `git` and co.
+
+### 5. The Status Bar
+
+The thin strip along the bottom. The important part for us is on the right, where VS Code shows which Python interpreter it is using. Click it to get the interpreter picker; it is also available as `Python: Select Interpreter` in the Command Palette.
+
+An **interpreter** is the program that actually executes your code, which means the version of `python` that belongs to one particular environment. Note that different interpreters have different packages installed, so be mindful about which interpreter you're using.
+
+In general, the status bar is a good starting place to check whenever Python behaves strangely.
+
+## Getting Python Running
+
+First, let's talk **conda**, which is the package and environment manager that you should've installed in HW0. Conda does two jobs that `R` splits between `install.packages()` and `renv`: (1) it downloads packages, and (2) it keeps each project's packages in a separate *environment*. Note that conda also manages Python itself, which `R` does not do.
+
+To get Python running in VS Code, follow these steps:
+
+1. **Install the Python extension.** Open Extensions, search for "Python", and install the one published by Microsoft (`ms-python.python`). It comes with Pylance for IntelliSense. **IntelliSense** is VS Code's umbrella term for the help you get while typing (i.e., completions, function signatures, and inline documentation), and **Pylance** is the language server that works out what to show you. Both can make programming much less stressful.
+2. **Create an environment.** From the terminal, using the Miniforge install from HW0: `conda create -n stat5014 python=3.12 numpy scipy pandas matplotlib numba jupyter seaborn` (argument details below), then `conda activate stat5014`. Try to get into the habit of making one environment per project.
+3. **Point VS Code at that environment.** Command Palette, `Python: Select Interpreter`, and choose the `stat5014` one. Confirm it appears in the status bar. Selecting it tells VS Code which `python` to use on your behalf, which packages it believes exist, which completions to offer, and which environment the play button activates.
+4. **Run something.** Make a `hello.py` file, put `print("hello")` in it, and press the play button in the top right of the editor. Congrats, you get a LinkedIn badge now...
+
+Breaking down that second command: `-n stat5014` names the environment "stat5014", `python=3.12` specifies the Python version. The remaining arguments are packages to load in the environment. Of those, `numpy` gives you arrays, `scipy` adds distributions and optimizers, `pandas` gives you data frames, `matplotlib` draws plots, `numba` is the compiler we'll get to at the end of today, and `jupyter` and `seaborn` are there for Homework 4.
+
+### The Play Button
+
+The play button runs `Python: Run Python File in Terminal`, which opens a terminal, activates your environment, and runs the file.
+
+Note that there are two independent Python settings here, which is the source of most confusion:
+
+1. The **selected interpreter**, shown in the status bar, which drives IntelliSense and linting (i.e., the automatic checking of your code; see below).
+2. The **terminal's active environment**, which is what actually runs your code.
+
+These two can actually drift apart. Run `which python` (`where python` on Windows) in the terminal and compare it against the status bar. If they disagree, then close that terminal and open a new one to get the selected interpreter.
+
+### Play Button Not Working?
+
+One of you has a play button that stopped working. If this is you (now or in the future), try the following:
+
+1. If you installed the **Code Runner** extension, then you have two play buttons that do different things. Disable Code Runner and see whether the problem goes away.
+2. Look at the status bar. If it says "Select Interpreter" or names something that no longer exists, then run `Python: Select Interpreter` and pick your environment.
+3. Check whether the command exists at all. Run `Python: Run Python File in Terminal` from the palette. If you get "command not found," then the Python extension failed to activate, which is an entirely different problem.
+4. For the case in step 3, run `Python: Clear cache and reload window`. The old-as-time IT recommendation...
+5. Read your personal settings from Command Palette, `Preferences: Open User Settings (JSON)`. Look for `python.defaultInterpreterPath` pointing to a Python environment that no longer exists or stray `code-runner.*` entries.
+
+### Linting?
+
+**Linting** automates checking your code for mistakes and bad style as you type. A linter catches what is legal Python, a variable that you assigned and never used, a name that you misspelled, and an import that is missing.
+
+Although the Python extension flags syntax errors on its own, real linting comes from a separate extension; see [Microsoft's linting page](https://code.visualstudio.com/docs/python/linting) for options. **Pylint** and **flake8** are the conventional picks, and **Ruff** is (supposedly) the fast modern one. I recommend that you install one from Extensions to see if you like it.
+
+Once the linter is running, problems show up as squiggly underlines under the offending code, explanations when you hover over that underline, and entries in the Problems panel (**Ctrl+Shift+M**, or **Cmd+Shift+M** on a Mac). Don't worry... my Problems panel also isn't cleared.
+
+## Python (If You Already Know R)
+
+Now, the language. Everything below is something you can already do in `R`; only the spelling changes.
+
+```python
+import numpy as np # the array library; R has vectors built in, Python does not
+
+x = [10, 20, 30, 40, 50]  # a list, which is NOT a vector
+v = np.array(x) # this is the thing that behaves like an R vector
+```
+
+A plain Python list (`x`) does not do arithmetic element-wise, so `[1, 2] * 2` repeats the list rather than doubling it. Thus, for anything numeric, you want a NumPy array, which broadcasts the way `R` does and is generally just much more efficient for people like us to code.
+
+Also, in `R`, a dot is an ordinary character in a name, which is why `data.frame` and `my.var` are legal. In Python, a dot means "look inside this object," so `np.array` is the `array` function inside `np`.
+
+### Indexing Starts @ 0
+
+| | `R` | `Python` |
+|:--|:--|:--|
+| first element | `x[1]` | `x[0]` |
+| last element | `x[length(x)]` | `x[-1]` |
+| `x[-1]` means | drop the first element | the last element |
+| a slice | `x[2:3]` gives 2 elements | `x[1:3]` gives 2 elements |
+| range ends | `1:5` includes 5 | `range(1,5)` stops at 4 |
+
+`x[-1]` is valid in both languages yet means opposite things. Be careful if you frequently switch between the two!
+
+Also, Python's slices are half-open, which is why `x[1:3]` gives you two elements rather than three.
+
+### Assignment Does Not Copy
+
+`R` gives you *copy-on-modify*: assign a vector to a new name, change the copy, and the original is untouched. Python does not:
+
+```python
+a = [1, 2, 3]
+b = a
+b[0] = 99
+a # [99, 2, 3]; in R, a would still be 1 2 3
+
+v = np.array([1, 2, 3])
+w = v
+w[0] = 99
+v # array([99,  2,  3]), so NumPy behaves the same way as base Python
+```
+
+In Python, `b` and `a` were never two objects; they were two names for one object. If you want a copy, then ask for one with `a.copy()` or `v.copy()`. Importantly, this applies to anything you pass into a function, so a function that modifies its argument changes the original data!
+
+### A Few More Differences
+
+```python
+np.nan == np.nan # False; exactly like NA == NA in R
+np.array([1.0, np.nan, 3.0]).mean() # np.float64(nan); R: mean() gives NA
+np.nanmean([1.0, np.nan, 3.0]) # np.float64(2.0); R: mean(x, na.rm = TRUE)
+```
+
+And one thing in Python that has no `R` equivalent at all:
+
+```python
+def add_item(x, bucket=[]): # the default for "bucket" is created once at definition
+    bucket.append(x) # append adds "x" at the end of bucket
+    return bucket
+
+add_item(1) # [1]
+add_item(2) # [1, 2]; the default kept the first call's value
+```
+
+If you want arguments to operate like in `R`, default them to `None` and build the container inside the function.
+
+## Making Python Fast w/ Numba
+
+Python's loops are slow for the same reason `R`'s are: the interpreter does a lot of bookkeeping per iteration. In `R`, you escape this by vectorizing. In `Python`, you can vectorize with NumPy *OR* you can compile the loop with **Numba**. Note that R does not have such an option.
+
+**Numba** is a [just-in-time (JIT) compiler](https://numba.pydata.org/numba-doc/dev/user/jit.html) (we'll see this again for base Julia). You add a *decorator* (i.e., a one-line marker above a function written with an `@` that wraps the function in extra behavior), and Numba translates the function to machine code the first time you call it. Then, the compiled version is cached and executes quicker for every future call.
+
+To see this, let's consider a Metropolis-Hastings sampler. The model is a Poisson likelihood whose log-rate is `theta` with a standard normal prior on `theta`; the log-posterior is the expression assigned to `cur` below:
+
+```python
+from numba import njit
+
+@njit # tells Python to compile this function to machine code on its first call
+def mh(n, y_sum, n_obs, step, seed): # define a function
+    np.random.seed(seed) # Numba has its own RNG so the seed has to be set inside
+    chain = np.empty(n) # preallocate; growing an array one element at a time recopies it
+    theta = 0.0 # starting value for the log-rate
+    cur = y_sum*theta - n_obs*np.exp(theta) - 0.5*theta*theta # log posterior at theta
+    for i in range(n): # for-loop syntax!
+        prop = theta + step*np.random.normal() # propose a nearby value
+        new = y_sum*prop - n_obs*np.exp(prop) - 0.5*prop*prop # log-posterior at the proposal
+        if np.log(np.random.random()) < new - cur: # Metropolis ratio on the log scale
+            theta = prop # accept the proposal
+            cur = new # carry its density forward so we don't recompute it
+        chain[i] = theta # store the state
+    return chain
+```
+
+That is ordinary Python with one line added (the decorator at the top!). Here is what two million iterations cost on my laptop:
+
+| Implementation | Time |
+|:--|--:|
+| `R` loop w/ draws generated upfront | 0.55 s |
+| Python loop w/ draws generated upfront | 1.8 s |
+| Python with `@njit` | 0.13 s |
+
+All three produce the same posterior mean to three decimals, but Numba is the fastest!
+
+So, `@njit` is roughly 4x quicker than `R`. However, compilation costs about 0.8 seconds the first time that the function runs. So, Numba (like any compiling) is worth it for something you call repeatedly but is a waste of time for a function that you only call once.
+
+Though it might seem perfect, Numba does have limits. First, it often refuses to compile pandas objects (see below), dictionaries of mixed types, and most things that are not numeric arrays and loops. When it refuses, it raises a `TypingError` that names the type it could not handle.
+
+#### [Pandas?](https://thumbs.dreamstime.com/b/pixel-art-panda-working-laptop-game-asset-design-vector-illustration-panda-working-laptop-pixel-art-design-perfect-365998788.jpg)
+
+**pandas** is Python's data-frame library. With it, a `DataFrame` will operate like an `R` data frame. It is how most data handling in Python happens, which is why Numba refusing to compile it matters... If you need speed and data frames together, then the usual pattern is to pull the columns you need out as NumPy arrays, hand those to the compiled function, and put the result back in **pandas** afterward.
+
+## Further Readings
+
+- The [VS Code Python tutorial](https://code.visualstudio.com/docs/python/python-tutorial) covers the setup above in more detail with screenshots.
+- The [Numba documentation](https://numba.readthedocs.io/en/stable/user/5minguide.html) has a five-minute guide, and its [supported Python features](https://numba.readthedocs.io/en/stable/reference/pysupported.html) page is great to check when `@njit` refuses to compile something.
+- [*Python for Data Analysis*](https://wesmckinney.com/book/) by Wes McKinney, who wrote pandas, is free online and covers the data-frame part of Python.
+
+## Before Next Week
+
+- Get the four setup steps above done and bring a working `hello.py` file.
+- Next week: `Julia`, the other half of the VS Code interface, and why a language designed for numerical work makes different tradeoffs than `R` and `Python`.
