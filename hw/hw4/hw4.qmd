@@ -1,0 +1,63 @@
+---
+title: "STAT 5014 — Homework 4: Reverse-Engineering a Published Figure"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    embed-resources: true
+---
+
+Find a figure in a published paper and rebuild it. You may not have their data, so you can simulate data that roughly produces it.
+
+## Setup
+
+Pick any paper that you're interested in. Then, pick one figure that does at least three of the following:
+
+1. Splits into panels (i.e., facets) driven by a variable.
+2. Draws two or more geometric layers in one panel, such as points with a fitted line.
+3. Maps a third variable to color, shape, size, or linetype.
+4. Uses a coordinate system or scale that is not the default: a log-axis, flipped or polar coordinates, a fixed aspect ratio, etc.
+5. Shows a computed quantity (e.g., a density, a smooth with its uncertainty band, or a binned summary).
+
+You may reproduce the figure in either `R` or `Python`. Push the Quarto document that generates the figure to your personal class GitHub repository. If you go the Python route, then note that Quarto runs Python through Jupyter:
+
+```bash
+conda activate stat5014
+conda install jupyter seaborn
+```
+
+*Note*: `seaborn` is there for faceting.
+
+---
+
+## Part 1: Infer the Data
+
+Before you write any plotting code, write down what the data must be: the variables, whether each is continuous or categorical, the plausible range of each, how many observations and how many groups, and the relationships that the figure implies. A reader who has never seen the paper should be able to generate data from your description.
+
+---
+
+## Part 2: Rebuild the Figure
+
+Then, generate it with a seed at the top. Keep the plotting code to roughly 20-30 lines. If it grows past that, then your figure is likely too complicated for this assignment. You may simplify the data (e.g., assume independence where the original probably had correlation) as long as you say what you simplified.
+
+Match the visual grammar of the original graphic: the same panels, the same layers, the same mappings. Do not worry about matching fonts, exact colors, axis limits, insets, annotations, or the journal's figure dimensions, though; that's not worth your time.
+
+Label your axes with units. Use a palette that works for a colorblind reader, even if the original figure's palette fails to.
+
+Write a caption in which every number comes from inline code rather than from your own typing.
+
+Finally, finish with one sentence on what the original figure could do better.
+
+---
+
+## Submission Checklist
+
+You pass if you complete the following:
+
+- [ ] Cited the paper and named the figure number, so I can go look at the original.
+- [ ] The figure does at least three of the five things from "Setup."
+- [ ] Part 1 is specific enough to generate data from, and names anything you simplified.
+- [ ] The simulation is seeded, and the document renders from a restarted session.
+- [ ] Axes are labeled with units.
+- [ ] The palette survives a colorblindness check.
+- [ ] Every number in the caption comes from inline code.
