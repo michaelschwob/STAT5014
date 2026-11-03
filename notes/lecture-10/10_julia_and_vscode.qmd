@@ -1,0 +1,246 @@
+---
+title: "STAT 5014 — Lecture 10: Julia and More of VS Code"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    embed-resources: true
+---
+
+Julia's sale pitch is rather simple: it is a language where you can write an ordinary loop and have it run at compiled speed without dropping into C++ or decorating anything (i.e., Numba). Whether that is worth learning a third language is up to you -- it was for me!
+
+## VS Code (cont.)
+
+### Source Control
+
+Let's start with something you'll often do at the start of projects: cloning a GitHub repository.
+
+On GitHub, the green **Code** button gives you the URL to copy; generally, take the HTTPS URL (unless you have already set up keys, then do SSH). Then, there are two routes to getting the GitHub repository into VS Code.
+
+1. From VS Code, open the Command Palette and run `Git: Clone`, paste the URL, and pick the folder you want the repository to sit in. VS Code clones it and asks whether you would like to open it. If the repository is private, then VS Code will ask you to sign in to GitHub first. VS Code may also ask you if you trust the authors of the files in the folder. That's up to you.
+
+2. From the terminal:
+
+```bash
+git clone https://github.com/michaelschwob/STAT5014.git # do you trust me?
+cd STAT5014
+code . # opens VS Code with this folder as the workspace
+```
+
+On a Mac, you may have to run `Shell Command: Install 'code' command in PATH` from the Command Palette before the `code` commands works in the terminal.
+
+The **Source Control** tab (the branch icon) is `git` with buttons. Every changed file in your workspace is listed there; clicking one opens a side-by-side diff of your version against the last commit. The `+` next to a file stages it (i.e., `git add`), the message box and the checkmark commit it (i.e., `git commit`), and the sync button at the bottom pushes and pulls (i.e., `git push/pull`).
+
+Note the colored bars that appear in the left margin once your folder is a repository: green marks lines you added, blue marks lines you changed, and a red triangle marks a deletion. (Those bars are a different thing from the red circles that we'll talk later today.)
+
+### Working on a Remote Machine
+
+The **Remote-SSH** extension lets you open a folder that lives on another computer and work in it as though it were local: the editor, the file tree, and the integrated terminal all run over on the remote machine's files with its software. This matters for us because, soon, we will move to ARC (Virginia Tech's computing cluster).
+
+### Settings
+
+VS Code has two types of settings. Your "user settings" follow you from project to project, and they are the ones we opened in the Command Palette last week. In contrast, "workspace settings" live in a `.vscode/settings.json` file inside the project folder and override your personal ones for that project only.
+
+Notably, the workspace settings file can be committed. If your repository records which interpreter to use and which formatter to run, then a collaborator who clones it gets your exact setup, which can greatly help sometimes!
+
+## Julia (If You Already Know R and Python)
+
+In your terminal, install Julia with `juliaup`, the official installer and version manager:
+
+```bash
+## macOS and Linux
+curl -fsSL https://install.julialang.org | sh
+
+## Windows
+winget install --name Julia --id 9NJNWW8PVKMN -e -s msstore
+```
+
+Then, install the **Julia** extension from the Extensions tab. The extension gives you a Read–Eval–Print Loop (REPL) inside VS Code (`Julia: Start REPL` in the Command Palette), which is what we'll be using today. It also provides a debugger, which we'll discuss later.
+
+The Julia prompt has four modes; you can reach them by typing a single character at an empty prompt. Typing `]` gives you **package mode**, where you can write `add Distributions` (alternatively, write `using Pkg; Pkg.add("Distributions")`). Typing `?` gives you **help**, so `?mean` prints the docstring. Typing `;` gives you a **shell**, so you can run `ls` without leaving Julia. Backspace returns you to the **normal prompt** from any of them.
+
+### Julia Environments
+
+Run `] activate .` in your project folder to start a fresh environment there. The first time you `] add` a package, Julia writes a `Project.toml` recording what you asked for alongside a `Manifest.toml`, which records the exact version of everything you actually use (dependencies of dependencies included). A collaborator can then run `] instantiate` and receive your exact environment. Pretty straightforward, right?
+
+### Indexing
+
+| | `R` | `Python` | `Julia` |
+|:--|:--|:--|:--|
+| first element | `x[1]` | `x[0]` | `x[1]` |
+| last element | `x[length(x)]` | `x[-1]` | `x[end]` |
+| does `1:5` include 5? | yes | no (`range(1,5)`) | yes |
+| storage order | column-major | row-major | column-major |
+| assignment copies? | yes | no | no |
+
+Julia agrees with `R` nearly everywhere, but there is one exception... Assigning an array to a new name gives you a second name for one array (as in Python). The Julia equivalent of Python's `v.copy()` is simply `copy(v)`. 
+
+A related convention: a function whose name ends in `!` modifies its argument, so `sort(x)` returns a sorted copy while `sort!(x)` sorts `x` in place.
+
+### Broadcasting
+
+Last week, we met the dot twice: (i) an ordinary character in a name in `R` and (ii) attribute access in Python. Julia gives it a third job: a dot before an operator or after a function name applies that operation element-by-element.
+
+```julia
+x = [1.0, 2.0, 3.0]
+x .+ 1 # [2.0, 3.0, 4.0]
+sqrt.(x) # applies sqrt to each element
+
+A = [1 2; 3 4]
+A * A # [7 10; 15 22] matrix multiplication
+A .* A # [1 4; 9 16] element-wise
+```
+
+### Missing Values?
+
+```julia
+using Statistics # for mean
+
+x = [1.0, missing, 3.0]
+
+missing == missing # missing, not false
+ismissing(missing) # true
+mean(x) # missing; R's mean() gives NA
+mean(skipmissing(x)) # 2.0; R's equivalent is mean(x, na.rm = TRUE)
+```
+
+Here, Julia follows `R` rather than Python. In `R`, `NA == NA` returns `NA` because the comparison of two unknown values is itself unknown. In Julia, `missing == missing` returns `missing` for the same reason. Python's `np.nan == np.nan` returns an ordinary `False`, which is a different design: it commits to an answer. Thus, `ismissing()` is Julia's `is.na()`, and `skipmissing()` is its `na.rm = TRUE`.
+
+### Multiple Dispatch
+
+Multiple dispatch is more than a syntax change; it is the reason Julia exists.
+
+In `R`, an S3 method is a function whose name encodes the class of its first argument, so `summary()` on an `lm` object actually uses `summary.lm()`. In Python, a method belongs to the object, so you write `x.summarize()` and the object decides what to do. Both languages dispatch on one thing. In contrast, Julia dispatches on the types of all the arguments at once:
+
+```julia
+## one function, three methods, chosen by the types of both arguments
+combine(a::Number, b::Number) = a + b # 5
+combine(a::String, b::String) = a * b # "ab"; * concatenates strings in Julia
+combine(a::Number, b::String) = "$a$b" # "2b"
+```
+
+Calling `combine(2, 3)` runs the first, `combine("a", "b")` the second, and `combine(2, "b")` the third. Note that all three calls pass two arguments, so what picks the method is the pair of types rather than the number of arguments.
+
+The practical consequence is worth more than the syntax. If you define a new type, then you can add a method to somebody else's function without editing their code or asking their permission. In `R`, you can do a version of this with S3; in Python, you usually subclass or give up. This is why Julia packages compose with each other far better than the size of the ecosystem would suggest.
+
+To see this concretely, `methods(f)` lists every method belonging to a function named `f`. Run `methods(+)` in the REPL and scroll: addition is an ordinary Julia function with a very long list of methods, one per combination of argument types that somebody has defined.
+
+The statistical version is `Distributions.jl`, which does not define a `mean` function of its own. It adds methods to the `mean` you already have, which is why `mean(Normal(3, 1))` and `mean(Poisson(4))` both work. When you define your own type, you extend that same function in that same way, and every piece of code that already calls `mean` begins working on your type without being told about it.
+
+### Speed Without a Decorator
+
+Last week, making a Python loop fast required a second library and the `@njit` decoration on the function. In Julia, there is nothing to add because compiling your code to machine code is how the language runs by design. Here is last week's Metropolis-Hastings sampler with the same Poisson likelihood and standard normal prior on the log-rate:
+
+```julia
+using Random # for the Random.seed!() function
+
+function mh(n, y_sum, n_obs, stepsize, seed)
+    Random.seed!(seed)
+    chain = zeros(n) # preallocate as in Python
+    θ = 0.0 # starting value for the log-rate
+    logp = y_sum*θ - n_obs*exp(θ) - 0.5*θ*θ # log posterior at θ
+    for i in 1:n
+        prop = θ + stepsize*randn() # propose a nearby value
+        logp_prop = y_sum*prop - n_obs*exp(prop) - 0.5*prop*prop
+        if log(rand()) < logp_prop - logp # Metropolis ratio on the log scale
+            θ = prop
+            logp = logp_prop
+        end
+        chain[i] = θ # store the state
+    end
+    return chain
+end
+```
+
+Note that `θ` is an acceptable variable name, typed as `\theta` followed by Tab. I use Greek in Julia wherever the model writes Greek.
+
+Like Numba, Julia's JIT compilation has an upfront cost. Run the function twice with the `@time` macro and you can see that play out:
+
+```julia
+@time mh(2_000_000, 1200.0, 300.0, 0.1, 5014) # first call: includes compiling
+@time mh(2_000_000, 1200.0, 300.0, 0.1, 5014) # second call: just running
+```
+
+The difference between those two lines is compilation. Note the underscores in `2_000_000`, which Julia ignores but looks good for us humans.
+
+A **macro** (e.g., `@time`) starts with `@` and rewrites the code that follows it before that code runs. A handful of Julia macros are worth knowing now:
+
+| Macro | What it does |
+|:--|:--|
+| `@time` | runs an expression and reports the time and the allocations |
+| `@elapsed` | runs an expression and returns only the seconds |
+| `@show` | prints an expression next to its value, good for quick debugging |
+| `@assert` | throws an error when a condition is false |
+| `@.` | broadcasts every operation in an expression, so `@. y = a*x + b` needs no dots |
+| `@views` | makes slices refer to the original array instead of copying it |
+| `@code_warntype` | flags variables whose types the compiler could not pin down |
+| `@btime` | a more careful version of `@time` from the `BenchmarkTools.jl` package |
+| `Threads.@threads` | spreads the iterations of a loop across threads, which we'll see next week! |
+
+### Loops Are Allowed Here
+
+Note that the Metropolis-Hastings function has no type annotations anywhere and is still fast. When you call `mh` with those arguments, the compiler reads the types that you passed and compiles a version of the function specialized to exactly those types. Call it later with integers instead of floats and you get a second specialized version. You never have to write the types down; the compiler works them out for you.
+
+Two consequences follow that go against habits that you've probably built already:
+
+1. Annotations such as `::Real` exist for dispatch rather than for speed, so adding them to a function that has only one method reall only improves documentation. 
+2. You do not have to vectorize. In `R`, you rewrite a loop as a vectorized call because the loop itself is slow. In Julia, the loop is already compiled, so writing `for`-loops is frequently the faster choice as well as the clearer one.
+
+### Run and Debug
+
+The **Run and Debug** tab is S-tier programming knowledge. To use it, you may need to install an appropriate extension for each language in VS Code (e.g., `R debugger` for R); they make this easy with a few clicks. Note that some VS Code extensions require packages/libraries in the respective language (e.g., `R debugger` VS code extension requires the `vscDebugger` R package to be installed). All of this set-up will be worth it, I promise.
+
+Click the margin just left of a line number, or press **F9**, to get a red circle: a **breakpoint**. Run the file with **F5**, and it runs normally until it reaches that line, then pauses. From there, **F10** steps over the next line, **F11** steps into a function call, and **Shift+F11** steps back out. (Although these `F`-calls may seem weird at the beginning, this approach to debugging will save you a tremendous amount of time. I highly recommend you learn these!)
+
+While it is paused, the "Variables" pane on the left lists every local variable with its current value, and the "Debug Console" at the bottom is a REPL sitting inside that paused function, so you can type an expression and evaluate it in that exact state.
+
+The feature worth knowing about is the **conditional breakpoint**. To try it, right-click a breakpoint, choose to edit it, and give it an expression. Suppose your sampler produces a garbage value somewhere around the fifty-thousandth iteration. You could print two million lines and scroll, or you could set the condition `i == 50000` and have the program hand itself to you at that iteration with everything still in scope.
+
+To practice all of this, `debug_demo.R` in the class repository averages ten pulse readings and gets the wrong answer. Open it and set three breakpoints:
+
+1. On `total <- 0`, the first line of the function. Nothing has run yet, but the Variables pane already shows `x` with the `-99` value.
+2. On `total <- total + x[i]` inside the loop. Note that the conditional breakpoint described above is a VS Code feature rather than an `R` one, and the `R` debugger does not implement it, so here we walk the loop by hand. (It *does* work in Python and Julia...) The first stop is the first iteration with `i` at 1 and `total` at 0. Press **F5** six more times to arrive at the seventh iteration, where `total` reads 492 and `x[i]` reads -99. Step once more and watch `total` fall to 393.
+3. On `return(total / n)`. Here `total` is 645 and `n` is 10, which is the 64.5 that gets printed. In the "Debug Console," evaluate `mean(x[x != -99])` to see the 82.667 you should have gotten. If you have no Debug Console, then run `View: Debug Console` from the Command Palette; it is a tab in the bottom panel next to Problems and Terminal.
+
+### Relevant Julia Packages
+
+The short orientation: `Distributions.jl` for probability distributions, `DataFrames.jl` and `CSV.jl` for the data-frame half of the language, `GLM.jl` for the models you would fit with `lm()` and `glm()`, and `Makie.jl` or `Plots.jl` for figures. If you put time into the [Makie ecosystem](https://beautiful.makie.org/dev/), you will be able to make insane graphics.
+
+The one worth your attention in this department is `Turing.jl`, a probabilistic programming language built on top of Julia. You can essentially write models in something closer to statistical notation and it supplies the sampler. For example, the Metropolis-Hastings loop we just wrote is probably something that you wouldn't want to normally write. 
+
+Here is that same model in Turing:
+
+```julia
+using Turing # for the @model macro, MH(), and sample()
+
+@model function poisson_lograte(y)
+    θ ~ Normal(0, 1) # the prior
+    y .~ Poisson(exp(θ)) # the likelihood, one term per observation
+end
+
+chain = sample(poisson_lograte(y), MH(), 2_000_000)
+```
+
+That's it! The `~` reads as "is distributed as," and `MH()` asks for the same Metropolis-Hastings algorithm that we just coded by hand. Replacing it with `NUTS()` changes the sampler without touching the model.
+
+## So, We're All Switching to Julia?!
+
+Here are the major *cons* of Julia:
+
+1. The compilation you pay for on the first call applies to packages, too. So, the first plot of a session can take a surprising number of seconds. 
+
+2. The ecosystem is much smaller than in `R` and `Python`: for anything standard in statistics, `R` has a well-tested package. In Julia, you may be reading someone's source to find out whether it handles your edge case. And less people will be able to understand your code.
+
+My honest recommendation is to use Julia when you have a computationally expensive model. And when you want to use [emojis](https://juliapackages.com/p/emojify) for variable names. 
+
+## Further Readings
+
+- The Julia manual's [Noteworthy Differences from other Languages](https://docs.julialang.org/en/v1/manual/noteworthy-differences/) has one section comparing Julia to R and another comparing it to Python. It is the single most useful page for people in your position, and yes, I borrowed stuff from there for today's lecture.
+- VS Code's [debugging documentation](https://code.visualstudio.com/Docs/editor/debugging) covers breakpoints, the Variables pane, and launch configurations in more detail.
+- VS Code's [Remote Development using SSH](https://code.visualstudio.com/docs/remote/ssh) page is worth skimming before the upcoming ARC lecture.
+
+## Before Next Week
+
+- Install Julia and the Julia extension. In a folder of your choosing, run `] activate .` and then `] add Distributions`. Confirm that you end up with both a `Project.toml` and a `Manifest.toml`.
+- Install the Remote-SSH extension in VS Code.
+- Next week: parallel computing! And Homework 4 is due.
