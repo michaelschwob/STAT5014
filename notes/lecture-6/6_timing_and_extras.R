@@ -2,7 +2,7 @@
 #### STAT 5014 - Lecture 6 Code
 ####
 
-set.seed(5014) # let's all get the same numbers!
+set.seed(5014) # let's all get the same numbers!; do something
 
 ### Timing Info
 
