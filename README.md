@@ -104,7 +104,7 @@ based on class progress and priorities.
 | 8 | October 21 | Data Visualization |  |
 | 8 | October 28 | Python & VS Code | Homework 3 due |
 | 9 | November 4 | Julia & VS Code | |
-| 10 | November 11 | Parallel Computing | Homework 4 due |
+| 10 | November 11 | Parallel Computing and Big-O Notation | Homework 4 due |
 | 11 | November 18 | Advanced Research Computing (ARC) | Homework 5 due |
 | | November 25 | **NO CLASS** (Thanksgiving Break) |  |
 | 12 | December 2 | Presentations and Communicating Results |  |
