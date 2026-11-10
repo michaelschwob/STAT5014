@@ -1,0 +1,283 @@
+---
+title: "STAT 5014 — Lecture 11: Parallel Computing"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    embed-resources: true
+---
+
+There are two ways to make slow code faster: give it a better algorithm, or give it more cores. Today covers both because whether parallelizing is worth it depends on your algorithm.
+
+## Processors, Cores, and Threads
+
+Your laptop has a **processor**, and that processor contains several **cores**. A core is the part that actually executes instructions; each one works through a single stream of instructions at a time. My laptop has ten cores, which is the ceiling on how much arithmetic it can genuinely do at once. That is, I can only compute up to 10 things at once.
+
+A **process** is a running program with its own private memory. If you open `R` twice, then you have two processes; neither can see the other's variables. A **thread** is a stream of execution inside a process, and all the threads of one process share that process's memory.
+
+"Parallel" means "more than one core working at the same time." You can engage multiple cores simultaneously by running processes in parallel or using multiple threads in a single process.
+
+## Counting Operations
+
+Before we go out and buy more processors, we should first be able to say how much work a function does. The language for that is O notation. To motivate this discussion, let's consider a familiar example.
+
+### Example: The Determinant
+
+Before any definitions, let's just count something. The determinant of a 2 by 2 matrix is
+
+$$ \det \begin{pmatrix} a & b \\ c & d \end{pmatrix} = ad - bc, $$
+
+which is two multiplications and one subtraction, so three operations. Now the 3 by 3 case, expanded along the first row:
+
+$$ \det \begin{pmatrix} a & b & c \\ d & e & f \\ g & h & i \end{pmatrix} = a(ei - fh) - b(di - fg) + c(dh - eg). $$
+
+Each of the three 2 by 2 minors costs three operations. Multiplying each minor by its coefficient is three more, and combining the three terms is two more, so fourteen operations in total.
+
+Carrying on in that fashion, an `n` by `n` determinant by cofactor expansion costs $T(n) = n \, T(n-1) + 2n - 1$ operations, which runs 3, 14, 63, 324, and onward. For a 20 by 20 matrix, that is $2.4 \times 10^{18}$ operations, or about 77 years at a billion operations per second.
+
+Of course, your computer does not do that. It factors the matrix and multiplies the diagonal instead, which costs about $n^3/3$ operations (i.e., only 2,666 operations for that same 20 by 20 matrix). So, there are two algorithms that give the same answer, but one is instantaneous and another takes a literal lifetime. When comparing algorithms, we don't want to have to count all the operations and extrapolate to higher `n`. Wouldn't it be nice if we had just one term that can tell us everything we need to know? Oh, damn. We do: Big-O notation.
+
+### Big-O
+
+Let $f(n)$ be the number of operations some function performs on an input of size $n$.
+We write $f(n) = O(g(n))$ when $f$ grows **no faster** than $g$, up to a constant. That is, there exists a constant $C$ and a size $n_0$ such that $|f(n)| \le C \, g(n)$ for every $n \ge n_0$. Thus, $3n^2 + 100n = O(n^2)$. Note that the constant 3 and the whole $100n$ term are deliberately thrown away because, for large $n$, they are essentially irrelevant.
+
+It is fair to ask whether all of this amounts to keeping the fastest-growing term, and it does... *sort of*. Yes, $3n^2 + 100n$ grows faster than $n^2$ in absolute terms. However, what the big-O definition permits is a constant multiple. Because $3n^2 + 100n \le 4n^2$ for every $n \ge 100$, taking $C = 4$ and $n_0 = 100$ satisfies it exactly. Thus, you can generally keep the fastest-growing term and discard its coefficient because we can always add a bigger coefficient to $g(n)$.
+
+For the determinant we just looked at, cofactor expansion is $O(n!)$ and factorization is $O(n^3)$.
+
+### Little-o
+
+We write $f(n) = o(g(n))$ when $f$ grows **strictly slower** than $g$, meaning $f(n)/g(n) \to 0$. Thus, $100n = o(n^2)$. The distinction is that **big-O is an upper bound** of the same order ("at most up to a constant") while **little-o is strict** ("negligible in comparison").
+
+Note that you already use both. For example, the remainder in a Taylor expansion is $o(h)$, consistency of an estimator is the statement $\hat\theta - \theta = o_p(1)$, and the central limit theorem's scaling is $\hat\theta - \theta = O_p(n^{-1/2})$. It is the same notation with probabilistic convergence substituted for ordinary convergence, so the intuition that you build on the computing side conveniently transfers to the theory side.
+
+For the determinant, $n^3 = o(n!)$. That is, the cost of factorization is not merely smaller than the cost of cofactor expansion; it becomes negligible beside it because $n^3/n! \to 0$. That is the formal comparison of 2,666 operations against $2.4 \times 10^{18}$ operations.
+
+There is also a practical reason to be fluent with O notation. Complexity is the common currency in which statisticians compare algorithms. Good methods papers state the complexity of their method; a new approximation earns its place because it takes a problem from $O(n^3)$ down to $O(n \log n)$. For example, the Gaussian process literature is organized almost entirely this way with each approximation advertised by the exponent it achieves and the conditions under which it still holds.
+
+### More Examples
+
+| Task | Operations | Class | Doubling `n` costs |
+|:--|:--|:--|:--|
+| add up `n` numbers | `n - 1` additions | $O(n)$ | 2 times as long |
+| sort `n` numbers | about `n` log `n` comparisons | $O(n \log n)$ | slightly over 2 |
+| all pairwise distances among `n` points | `n(n-1)/2` distances | $O(n^2)$ | 4 times as long |
+| Cholesky of an `n` by `n` matrix | about `n`³`/3` multiply-adds | $O(n^3)$ | 8 times as long |
+
+That last column is what matters. Let's take a closer look at the bottom two rows:
+
+| Task | `n` | Time | Ratio to previous |
+|:--|--:|--:|--:|
+| pairwise distances | 2,000 | 76 ms | |
+| | 4,000 | 284 ms | 3.8 |
+| | 8,000 | 1,205 ms | 4.2 |
+| Cholesky | 1,000 | 12 ms | |
+| | 2,000 | 85 ms | 7.1 |
+| | 4,000 | 529 ms | 6.3 |
+
+Okay, so why does all of this matter? Evaluating a Gaussian process likelihood at `n` locations requires the Cholesky factor of an `n` by `n` covariance matrix, so it costs about $n^3/3$ operations. Going from 1,000 observations to 10,000 multiplies your work by roughly a thousand. Thus, fields that deal with large GPs, such as spatial statistics, have a large literature on approximations.
+
+## Parallel Computing
+
+**Parallel computing** means getting several cores to work on your problem at the same time by splitting it across either several processes or several threads. The ceiling on how much you can parallelize is the number of cores that you have.
+
+A computation parallelizes cleanly when its pieces do not need to talk to each other. Simulation replicates, bootstrap resamples, cross-validation folds, and one model per subject are all *embarrassingly parallel*, which is a popular term of endearment rather than an insult.
+
+A computation does not parallelize when each step needs the previous one. The Metropolis-Hastings sampler from the last two lectures is a great example: iteration `i` depends on iteration `i-1`, so you can't run `i` and `i-1` at the same time. What you *can do* is run four independent chains on four cores, which is both parallel and good for convergence diagnostics.
+
+*Note*: the parallel timings below were measured on my 10-core laptop. Because your laptop may be different, the ratios are more important than the absolute timings.
+
+### The Function We Will Parallelize
+
+Let's compare parallelization in R, Python, and Julia using the same task, which conducts sixteen independent replicates of a small estimation problem:
+
+```r
+## one replicate: simulate 20,000 observations, then iterate toward their mean
+one_replicate <- function(seed){
+    set.seed(seed)
+    y <- rnorm(20000)
+    theta <- 0
+    for(k in 1:2000){
+        theta <- theta + sum(y - theta) / length(y) # one update
+    }
+    theta
+}
+```
+
+Because the sixteen replicates will never communicate, this is "embarrassingly parallel." Note that the inner loop is deliberately wasteful because a replicate that finished instantly would measure start-up costs rather than arithmetic. Let's count those operations explicitly because the total matters later and, frankly, it's good practice for O notation. Working from the inside out:
+
+1. `y - theta` subtracts a scalar from each of 20,000 values, which is 20,000 operations.
+2. `sum()` then adds those 20,000 values together, which is 20,000 more.
+3. The loop runs 2,000 times, so one replicate costs 2,000 times 40,000, or 80 million.
+4. There are sixteen replicates, so the whole job costs 16 times 80 million, or 1.28 billion.
+
+Note that each pass also performs one division and one addition on scalars, which we drop because two operations next to 40,000 is inconsequential.
+
+### Parallel R: Fork or Socket
+
+Great, so how do we parallelize in R? There are essentially two paths.
+
+**Forking** is where your R process is cloned by the operating system. The clone starts with everything your session already had, and memory is shared until something writes to it. Forking is cheap and requires no setup but is unavailable on Windows.
+
+An alternative in R is using a **socket cluster**, where fresh R processes are started and communicate with your process over a network connection. They begin empty, so anything that the workers need must be given to them, which is costly but works on every platform.
+
+![Forking vs a socket cluster.](11_fork_vs_socket.svg)
+
+```r
+library(parallel)
+
+detectCores() # how many cores this machine has
+
+## forking: Unix and macOS only
+## mclapply() is lapply() except the elements are spread across mc.cores forked workers
+res <- mclapply(1:16, one_replicate, mc.cores = detectCores())
+
+## socket cluster: works everywhere, needs explicit setup
+cl <- makeCluster(detectCores()) # start several fresh, empty R processes
+res <- parLapply(cl, 1:16, one_replicate) # lapply() again but spread over the cluster cl
+stopCluster(cl) # shut those processes down; they will not close themselves
+```
+
+The front-ends you will often see in the wild are `future` with `future.apply` (where `plan(multicore)` and `plan(multisession)` select fork and socket, respectively) and `foreach` with `doParallel` (which gives the `%dopar%` idiom).
+
+Let's time the different methods. Each row below runs sixteen replicates of `one_replicate()`, and differs only in how the work was handed out.
+
+| Approach | Time | Speedup |
+|:--|--:|--:|
+| `lapply`, serial | 0.978 s | |
+| `mclapply`, fork | 0.234 s | 4.18 |
+| `parLapply`, socket | 0.209 s | 4.68 |
+|   + `makeCluster` start-up | 0.510 s | 1.92 |
+
+Note that the socket cluster was slightly faster than forking once it was running, but slower than forking once you count the 0.295 seconds it took to start the workers.
+
+The difference between forking and sockets becomes decisive when the workers need your data. Here, I gave each worker a 95 MB matrix to read:
+
+| Approach | Time |
+|:--|--:|
+| `mclapply`, which shares the matrix | 0.026 s |
+| `clusterExport` of the matrix alone | 0.953 s |
+| `parLapply` once it has been exported | 0.007 s |
+
+The actual arithmetic took 7 milliseconds in socket, but transporting the data took 953.
+
+### Python: The GIL
+
+CPython's **global interpreter lock** (i.e., the GIL) permits only one thread to execute Python code at a time, so threads are useful for waiting on files and networks but useless for arithmetic. Thus, in Python the default answer is processes, and `multiprocessing.Pool` or `concurrent.futures.ProcessPoolExecutor` is where to start.
+
+There are two escapes from GIL. Library code written in C can release the GIL while it works, which is why NumPy and scikit-learn can use several cores from inside what looks like one thread. And Numba compiles the loop out of Python entirely:
+
+```python
+from numba import njit, prange
+
+@njit(parallel=True) # prange distributes the iterations over threads
+def kernel(n):
+    s = 0.0
+    for i in prange(n):
+        s += math.sqrt(i) * math.sin(i)
+    return s
+```
+
+That gave 4.82 times the throughput of the same function with plain `@njit`. Note that the GIL is a property of CPython rather than of the language; recent versions have an experimental build without it, so this section may age like (oat) milk.
+
+### Julia: Threads That Work
+
+Julia has no GIL, so threads do what you would expect and `Threads.@threads` from the macro table last week is the whole interface:
+
+```julia
+using Base.Threads # for @threads and nthreads
+
+out = zeros(16) # initialize vector
+@threads for i in 1:16 # iterations are divided among the available threads
+    out[i] = one_replicate(i)
+end
+```
+
+Note that Julia starts with one thread in the default pool unless you ask for more, so launch it with `julia -t auto` (or set `JULIA_NUM_THREADS`) and confirm with `nthreads()`.
+
+Additionally, threads share memory!
+
+```julia
+## WRONG: several threads read and write s at the same time
+s = 0.0
+@threads for i in 1:n
+    s += x[i] # the answer will be different each run
+end
+```
+
+Note that this does not error; it quietly returns a wrong number. The fix is for each iteration to write to its own slot (e.g., as in the `out[i]` above) and then combine the slots afterward. The Julia manual's [multi-threading page](https://docs.julialang.org/en/v1/manual/multi-threading/) works this example through in detail and is worth the ten minutes.
+
+For work that needs separate processes rather than threads, Julia has `Distributed` with `addprocs`, `@distributed`, and `pmap`, which behave much like `R`'s socket clusters. The manual chapter on [multi-processing and distributed computing](https://docs.julialang.org/en/v1/manual/distributed-computing/) is where to read further.
+
+### Three Workloads, Three Different Answers
+
+Now, let's compare the sixteen replicates that we computed previously in R across all three programming languages:
+
+| | Serial | Parallel | Speedup |
+|:--|--:|--:|--:|
+| R, fork | 0.978 s | 0.234 s | 4.18 |
+| Python, processes | 0.183 s | 0.037 s | 4.89 |
+| Julia, `@threads` | 0.341 s | 0.061 s | 5.62 |
+
+Let's also consider one million tiny tasks, each a single `sqrt`:
+
+| | Serial | Parallel | Speedup | Vectorized |
+|:--|--:|--:|--:|--:|
+| R | 0.191 s | 0.438 s | 0.44 | 0.002 s (117.6x) |
+| Python | 0.034 s | 0.033 s | 1.02 | 0.001 s (61.8x) |
+| Julia | 0.0010 s | 0.0002 s | 4.52 | 0.0006 s (1.7x) |
+
+In R and Python, ten cores bought nothing whatsoever. R was twice as slow for the trouble and Python barely broke even because handing a task to a worker *process* costs orders of magnitude more than a square root does. In fact, the vectorized approach on a single core beat the parallel version by roughly 220 times in R and 33 times in Python.
+
+Julia breaks that pattern. `Threads.@threads` over the same loop gained 4.52 times because it hands nothing to anybody; the threads share the array, divide the index range between them, and write into the same memory. There is no task to serialize and no result to send home. 
+
+In general, the rule is not that fine-grained work cannot be parallelized, but that fine-grained work cannot be parallelized across *processes*. Both R and Python reach for processes because the GIL and R's lack of user-level threading are all that's typically available.
+
+Note that the vectorized column still wins in R and Python by two orders of magnitude, so vectorize before you parallelize. However, in Julia, the threaded loop beat the vectorized code.
+
+Here's one more example for you Python-heads. One large array operation that was already vectorized, `exp()` over twenty million elements:
+
+| Approach | Time |
+|:--|--:|
+| serial NumPy | 0.035 s |
+| split across processes | 0.098 s |
+
+That is nearly three times slower, and almost all of it is the cost of transporting 16 MB chunks of array into worker processes. 
+
+### Why More Cores Stop Helping
+
+Suppose a fraction $s$ of your program is inherently serial. Then, with $N$ cores, the best speedup available is
+
+$$ \text{speedup} \le \frac{1}{s + (1 - s)/N}, $$
+
+which is **[Amdahl's law](https://en.wikipedia.org/wiki/Amdahl%27s_law)**. If a tenth of your runtime is serial, then no number of cores takes you past tenfold, and sixteen cores get you only to a 6.4 speed-up.
+
+Let's see this in practice by considering sixty-four tasks of about 3 ms each on ten cores, varying only the number of workers requested:
+
+| Workers requested | Time |
+|:--|--:|
+| serial `lapply` | 0.149 s |
+| 1 | 0.150 s |
+| 2 | 0.104 s |
+| 4 | 0.075 s |
+| 10, one per core | 0.075 s |
+| 12 | 0.076 s |
+| 20 | 0.088 s |
+| 40 | 0.115 s |
+
+Note that the gain saturates at four workers, not at ten. At 3 ms a task, this job is limited by the cost of distributing work rather than by arithmetic. So, `detectCores()` is a ceiling rather than a target.
+
+Note how this interacts with the first half of today. Parallelism gives you a constant factor bounded by the number of cores you own. The complexity class, by contrast, decides how fast the work grows as the problem gets bigger. 
+
+Now, consider both at once. Suppose your method is $O(n^3)$ and you move to a machine with eight cores, so your runtime falls by at most a factor of eight. Then, suppose your sample size doubles: because $2^3 = 8$, your work rises by a factor of eight. The two cancel exactly. Those eight cores did not make your method faster; they bought you the right to run twice the data at the speed you had before.
+
+## Further Readings
+
+- R's own `parallel` vignette is the best discussion of fork versus socket, written by the people who implemented both (see `vignette("parallel")`; it is installed on your machine already).
+- The Python documentation for [multiprocessing](https://docs.python.org/3/library/multiprocessing.html) and [concurrent.futures](https://docs.python.org/3/library/concurrent.futures.html); the second is the friendlier interface.
+- Julia's [multi-threading manual](https://docs.julialang.org/en/v1/manual/multi-threading/) covers `@threads` in more detail.
+
+## Before Next Week
+
+- Next week: Virginia Tech's ARC cluster, where the number of cores stops being a property of *your* laptop.
