@@ -1,0 +1,51 @@
+---
+title: "STAT 5014 — Homework 5: Reproduce the Benchmark"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    embed-resources: true
+---
+
+Lecture 11 contains three tables under "Three Workloads, Three Different Answers." Reproduce all three on your own machine to make sure I didn't lie to you. Don't just automatically believe me! This is what replication looks like in practice; you have a described method and a reported result, and you have to decide whether you believe it.
+
+## Part 1: The Three Approaches
+
+Implement these as specified, so your numbers are measuring the same thing as mine.
+
+1. For the first table, `one_replicate()` is written out in the notes in `R`; port it to Python and Julia without changing what it computes. Then, run seeds 1 through 16.
+2. For the second table, compute the square root of each integer from 1 to 1,000,000 (i.e., one call per element rather than one call on a vector).
+3. For the third table, compute `exp()` over 20,000,000 random values in Python only.
+
+Time approach 1 serially and in parallel in all three languages. Time approach 2 the same way, and additionally time the vectorized one-liner. Time approach 3 serially and split across processes (again, only in Python).
+
+Report the minimum of at least three runs rather than a single run, and state your core count at the top. A table of timings without a core count does not mean anything!
+
+---
+
+## Part 2: Where You Disagree With Me
+
+My tables came off a ten-core laptop, so yours will not match them. For each of the three workloads, answer two questions: should your result differ from mine, and why? Then: did it?
+
+---
+
+## Some Things I'll Be Looking For
+
+1. The qualitative pattern: table 1 gains in all three languages, table 2 gains in Julia but not in R or Python, and table 3 loses.
+2. Your core count, and timings reported as minima over several runs.
+3. Code that runs; I will run it in a fresh session from the top.
+4. Honest numbers; I know *roughly* what these benchmarks do, so a result that is too clean is more suspicious to me than a mess.
+
+---
+
+## Submission Checklist
+
+Submit the rendered document and all of your code before the due date. You pass if you complete the following:
+
+- [ ] All three approaches implemented and timed as described.
+- [ ] All three tables reproduced with your core count stated.
+- [ ] `nthreads()` reported for Julia, and greater than 1.
+- [ ] Timings are minima over at least three runs.
+- [ ] Part 2 answered for each of the three workloads.
+
+One warning: table 3 requires a few hundred megabytes, so parallelizing it will hold several times that. If your laptop has 8 GB, then run that one on its own without background processes running.
